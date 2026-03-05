@@ -2,6 +2,8 @@
  A Work In Progress Twitch Integration Mod for [Balatro](https://store.steampowered.com/app/2379780/Balatro/)
 <img width="666" height="432" alt="balatro2" src="https://github.com/user-attachments/assets/f32126e3-5def-4d9a-ac9f-d5d34e8d1a22" />
 
+Includes 16 jokers as well as the commands listed below
+
 # Commands
 * !blueprint (Spawn a blueprint)
 * !destroy (Destroys a random joker)
