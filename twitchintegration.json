@@ -1,0 +1,20 @@
+{
+  "id": "twitchintegration",
+  "name": "Twitch Integration",
+  "author": [
+    "chowder908",
+    "JackMacWindows",
+    "Mossloth",
+    "korgeaux"
+  ],
+  "description": "A Twitch Integration mod made for the purpose of helping or destroying a streamers run. Shaders by Nxkoo",
+  "prefix": "ttv",
+  "main_file": "main.lua",
+  "version": "0.1.0",
+  "priority": 0,
+  "badge_colour": "666665",
+  "badge_text_colour": "FFFFFF",
+  "dependencies": [
+    "Steamodded (>=1.0.0~BETA-1501a)"
+  ]
+}

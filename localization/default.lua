@@ -1,0 +1,46 @@
+return {
+    descriptions = {
+        Back = {},
+        Blind = {},
+        Edition = {},
+        Enhanced = {},
+        Joker = {},
+        Other = {},
+        Planet = {},
+        Spectral = {},
+        Stake = {},
+        Tag = {},
+        Tarot = {},
+        Voucher = {}
+    },
+    misc = {
+        achievement_descriptions = {},
+        achievement_names = {},
+        blind_states = {},
+        challenge_names = {},
+        collabs = {},
+        dictionary = {},
+        high_scores = {},
+        labels = {},
+        poker_hand_descriptions = {},
+        poker_hands = {},
+        quips = {
+            ttv_chatter = {
+                "#1#"
+            }
+        },
+        ranks = {},
+        suits_plural = {},
+        suits_singular = {},
+        tutorial = {},
+        v_dictionary = {},
+        v_text = {
+            j_ttv_chatters = {
+                "Chat Joker"
+            },
+            j_ttv_copycat = {
+                "Copy Cat"
+            }
+        }
+    }
+}
