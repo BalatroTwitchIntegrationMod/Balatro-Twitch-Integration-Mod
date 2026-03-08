@@ -1,9 +1,5 @@
----@class Mod
-local mod = SMODS.Mods.twitchintegration
-
-if not mod.utils then
-    mod.utils = {}
-end
+---@class UrlUtils
+local UrlUtils = {}
 
 local escape_map = {
     [" "] = "20",
@@ -56,7 +52,7 @@ end
 
 ---@param params table<string, number|string|(number|string)[]>
 ---@return string
-function mod.utils.format_url_params(params)
+function UrlUtils.format_url_params(params)
     local params_string = ""
 
     for key, value in pairs(params) do
@@ -75,3 +71,5 @@ function mod.utils.format_url_params(params)
 
     return params_string
 end
+
+return UrlUtils

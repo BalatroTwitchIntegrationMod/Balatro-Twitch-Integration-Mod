@@ -18,10 +18,7 @@ function JimboChatter:init(args)
     self.children.card.states.visible = false
     self.children.card:set_alignment({major = self, type = "cm", offset = {x = 0, y = 0}})
     self.children.card.states.collide.can = false
-    self.children.card.states.focus.can = false
-    self.children.card.states.hover.can = true
-    self.children.card.states.drag.can = false
-    self.children.card.hover = Node.hover
+    self.children.card.ambient_tilt = 1
 
     if getmetatable(self) == JimboChatter then
         table.insert(G.I.CARD, self)
@@ -69,6 +66,7 @@ function JimboChatter:say(text)
         major = self
     })
     self.children.speech_bubble.states.visible = false
+    self.children.speech_bubble.states.collide.can = false
 
     if self.children.card then
         self.children.card:start_materialize(self.config.colours, false, G.SPEEDFACTOR * 0.8)
@@ -131,10 +129,6 @@ function JimboChatter:hide()
             return true
         end
     }))
-end
-
-function JimboChatter:move(dt)
-    Moveable.move(self, dt)
 end
 
 function JimboChatter:draw()

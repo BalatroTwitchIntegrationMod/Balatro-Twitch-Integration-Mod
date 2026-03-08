@@ -1,3 +1,6 @@
+---@class Mod
+local mod = SMODS.current_mod
+
 ---@class IRCMessage
 ---@field tags? table<string, string>
 ---@field source? string
@@ -16,7 +19,7 @@
 ---@field is_subscriber boolean
 
 ---@class TwitchChat
----@field client? TCPSocketClient
+---@field client? SecureTCPSocketClient
 ---@field buffer string
 ---@field token string
 ---@field user_name string
@@ -276,7 +279,7 @@ function TwitchChat:connect(token, user_name)
 
         client:settimeout(0)
 
-        local _, err = client:connect("irc.chat.twitch.tv", 6667)
+        local _, err = client:connect("irc.chat.twitch.tv", 6697)
         if err and err ~= "timeout" then
             client:close()
             return
@@ -284,7 +287,7 @@ function TwitchChat:connect(token, user_name)
 
         ---@cast client TCPSocketClient
 
-        self.client = client
+        self.client = mod.utils.secure_socket:wrap(client)
         self.buffer = ""
         self.token = token
         self.user_name = user_name
@@ -344,7 +347,7 @@ end
 ---@return IRCMessage?, string?
 ---@private
 function TwitchChat:receive()
-    local line, err, partial = self.client:receive("*l")
+    local line, err = self.client:receive()
 
     if line then
         if #self.buffer > 0 then
@@ -353,10 +356,6 @@ function TwitchChat:receive()
         end
 
         return parse_irc_message(line)
-    end
-
-    if err == "timeout" and #partial > 0 then
-        self.buffer = self.buffer .. partial
     end
 
     return nil, err
@@ -384,11 +383,10 @@ end
 ---@param event fun(event: TwitchChatEvent)
 function TwitchChat:process(event)
     if self.state == "connecting" then
-        local _, writable, err = socket.select(nil, {self.client}, 0)
-
+        local ready, err = self.client:connect()
         if err and err ~= "timeout" then
             self:disconnect()
-        elseif writable and writable[1] then
+        elseif ready then
             self.state = "handshake"
             self.handshake = "cap req"
         end

@@ -1,4 +1,12 @@
-assert(SMODS.load_file("twitch/utils.lua"))()
+---@class Mod
+local mod = SMODS.current_mod
+
+if not mod.utils then
+    mod.utils = {}
+end
+
+mod.utils.url = assert(SMODS.load_file("twitch/url.lua"))()
+mod.utils.secure_socket = assert(SMODS.load_file("twitch/ssl.lua"))()
 
 ---@class Twitch
 ---@field auth TwitchAuth

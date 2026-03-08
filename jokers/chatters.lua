@@ -1,5 +1,5 @@
 ---@type Mod
-local mod = SMODS.Mods.twitchintegration
+local mod = SMODS.current_mod
 
 SMODS.Joker {
     key = "chatters",
