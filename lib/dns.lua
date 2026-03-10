@@ -2,7 +2,13 @@
 
 local ffi = require("ffi")
 
-local C = ffi.C
+local C = nil
+
+if ffi.os == "Windows" then
+    C = ffi.load("Ws2_32.dll")
+else
+    C = ffi.C
+end
 
 ffi.cdef [[
     typedef uint32_t socklen_t;
