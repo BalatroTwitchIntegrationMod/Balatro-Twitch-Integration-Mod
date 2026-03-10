@@ -1,0 +1,13 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+
+[[patches]]
+[patches.module]
+source = "lib/dns.lua"
+name = "lib.dns"
+
+[[patches]]
+[patches.module]
+source = "lib/socket/socket.lua"
+name = "lib.socket"
