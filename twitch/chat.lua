@@ -19,7 +19,7 @@ local mod = SMODS.current_mod
 ---@field is_subscriber boolean
 
 ---@class TwitchChat
----@field client? SecureTCPSocketClient
+---@field client? SecureSocket
 ---@field buffer string
 ---@field token string
 ---@field user_name string
@@ -54,7 +54,7 @@ TwitchChat.__index = TwitchChat
 
 ---@alias TwitchChatEvent EventConnected | EventDisconnected | EventJoined | EventMessage | EventClear
 
-local socket = require("socket")
+local socket = require("socket.secure")
 
 ---@param value string
 ---@return string
@@ -271,23 +271,12 @@ end
 ---@param user_name string
 function TwitchChat:connect(token, user_name)
     if self.state == "disconnected" then
-        local client = socket.tcp()
-
-        if not client then
+        local client, err = socket:open("irc.chat.twitch.tv", 6697)
+        if err then
             return
         end
 
-        client:settimeout(0)
-
-        local _, err = client:connect("irc.chat.twitch.tv", 6697)
-        if err and err ~= "timeout" then
-            client:close()
-            return
-        end
-
-        ---@cast client TCPSocketClient
-
-        self.client = mod.utils.secure_socket:wrap(client)
+        self.client = client
         self.buffer = ""
         self.token = token
         self.user_name = user_name
@@ -347,15 +336,25 @@ end
 ---@return IRCMessage?, string?
 ---@private
 function TwitchChat:receive()
-    local line, err = self.client:receive()
+    local data, err = self.client:receive()
 
-    if line then
-        if #self.buffer > 0 then
-            line = self.buffer .. line
-            self.buffer = ""
+    if data then
+        self.buffer = self.buffer .. data
+    end
+
+    if #self.buffer > 0 then
+        local line, line_end = string.match(self.buffer, "(.-)\n()")
+        if line then
+            self.buffer = string.sub(self.buffer, line_end)
+            if string.sub(line, #line) == "\r" then
+                line = string.sub(line, 1, #line - 1)
+            end
+            return parse_irc_message(line), nil
         end
+    end
 
-        return parse_irc_message(line)
+    if err and err ~= "timeout" then
+        self:disconnect()
     end
 
     return nil, err
@@ -384,7 +383,7 @@ end
 function TwitchChat:process(event)
     if self.state == "connecting" then
         local ready, err = self.client:connect()
-        if err and err ~= "timeout" then
+        if err then
             self:disconnect()
         elseif ready then
             self.state = "handshake"
