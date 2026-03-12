@@ -1,6 +1,3 @@
----@type Mod
-local mod = SMODS.current_mod
-
 ---@class TwitchAuth
 ---@field private client_id string
 ---@field private thread? love.Thread
@@ -10,6 +7,8 @@ local TwitchAuth = {
 
 ---@private
 TwitchAuth.__index = TwitchAuth
+
+local url_utils = require("twitch.url")
 
 ---@param scope string
 function TwitchAuth:start_auth(scope)
@@ -91,7 +90,7 @@ function TwitchAuth:start_auth(scope)
 
     self.thread:start()
 
-    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. mod.utils.url.format_url_params({
+    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. url_utils.format_url_params({
         client_id = self.client_id,
         force_verify = "true",
         redirect_uri = "http://localhost:3480",

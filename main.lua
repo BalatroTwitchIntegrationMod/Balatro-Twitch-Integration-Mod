@@ -15,16 +15,9 @@ G.alien_jumpscare_active = nil
 local TWITCH_CLIENT_ID = "iu1n0iv7lqs1g9bhoxa6z58bl91swl"
 local TWITCH_CLIENT_SCOPE = "channel:moderate user:read:chat user:write:chat chat:edit chat:read moderator:manage:banned_users"
 
----@type Twitch
-local twitch = assert(SMODS.load_file("twitch/lib.lua"))()
-
----@type TwitchAuth
+local twitch = require("twitch.lib")
 local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID)
-
----@type TwitchApi
 local twitch_api = twitch.api:new(TWITCH_CLIENT_ID, mod_obj.config.token)
-
----@type TwitchChat
 local twitch_chat = twitch.chat:new()
 
 local chat_commands = assert(SMODS.load_file("commands.lua"))()

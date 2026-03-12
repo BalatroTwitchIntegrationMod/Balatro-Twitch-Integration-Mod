@@ -1,6 +1,3 @@
----@class Mod
-local mod = SMODS.current_mod
-
 ---@class IRCMessage
 ---@field tags? table<string, string>
 ---@field source? string
