@@ -2,12 +2,25 @@
 
 local ffi = require("ffi")
 
-local C = nil
+local C = ffi.C
+local S = ffi.C
 
 if ffi.os == "Windows" then
-    C = ffi.load("Ws2_32.dll")
+    C = ffi.load("ucrtbase.dll")
+    S = ffi.load("Ws2_32.dll")
+
+    ffi.cdef [[
+        typedef unsigned int SOCKET;
+        typedef int ssize_t;
+        typedef struct WSAData WSADATA;
+
+        void *malloc (size_t);
+        void free (void *);
+    ]]
 else
-    C = ffi.C
+    ffi.cdef [[
+        typedef int SOCKET;
+    ]]
 end
 
 ffi.cdef [[
@@ -125,67 +138,86 @@ ffi.cdef [[
     const char *inet_ntop (int, const void *, char *, socklen_t);
     int inet_pton (int, const char *, void *);
     uint16_t htons (uint16_t);
-    int socket (int domain, int type, int protocol);
-    int connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen);
-    int close (int fd);
-    ssize_t send (int, const void *, size_t, int);
-    ssize_t recv (int, void *, size_t, int);
-    int fcntl (int, int, ...);
+    SOCKET socket (int, int, int);
+    int connect (SOCKET, const struct sockaddr *, socklen_t);
+    int close (SOCKET);
+    ssize_t send (SOCKET, const void *, size_t, int);
+    ssize_t recv (SOCKET, void *, size_t, int);
 ]]
 
--- libSSL definitions
+if ffi.os == "Windows" then
+    ffi.cdef [[
+        int WSAStartup (unsigned short, WSADATA *);
+        int WSACleanup (void);
+        int closesocket (SOCKET);
+        int shutdown (SOCKET, int);
+        int ioctlsocket (SOCKET, unsigned long, unsigned long *);
+        int WSAGetLastError (void);
+    ]]
+end
 
-local libssl = nil ---@type ffi.namespace*?
-local libssl_names = {
+-- SSL definitions
+
+local SSL = nil ---@type ffi.namespace*?
+local ssl_names = {
+    "Secur32.dll",
+    "libssl.48.dylib",
     "libssl.so.3",
-    "libssl.48.dylib"
 }
 
-for _, name in ipairs(libssl_names) do
+for _, name in ipairs(ssl_names) do
     local success, lib = pcall(ffi.load, name)
     if success then
-        libssl = lib
+        SSL = lib
         break
     end
 end
 
-ffi.cdef [[
-    int BIO_socket_nbio (int fd, int mode);
+if ffi.os == "Windows" then
+    ffi.cdef [[
 
-    typedef struct ssl_method_st SSL_METHOD;
+    ]]
+else
+    ffi.cdef [[
+        int BIO_socket_nbio (int, int);
 
-    SSL_METHOD *TLS_method (void);
+        typedef struct ssl_method_st SSL_METHOD;
 
-    typedef struct ssl_ctx_st SSL_CTX;
+        SSL_METHOD *TLS_method (void);
 
-    SSL_CTX *SSL_CTX_new (SSL_METHOD *meth);
-    void SSL_CTX_free (SSL_CTX *ctx);
-    typedef int (*SSL_verify_cb) (int preverify_ok, void *x509_ctx);
-    void SSL_CTX_set_verify (SSL_CTX *ctx, int mode, SSL_verify_cb callback);
-    int SSL_CTX_set_default_verify_paths (SSL_CTX *ctx);
-    long SSL_CTX_ctrl (SSL_CTX *ctx, int cmd, long larg, void *parg);
+        typedef struct ssl_ctx_st SSL_CTX;
 
-    typedef struct ssl_st SSL;
+        SSL_CTX *SSL_CTX_new (SSL_METHOD *);
+        void SSL_CTX_free (SSL_CTX *);
+        typedef int (*SSL_verify_cb) (int, void *);
+        void SSL_CTX_set_verify (SSL_CTX *, int, SSL_verify_cb);
+        int SSL_CTX_set_default_verify_paths (SSL_CTX *);
+        long SSL_CTX_ctrl (SSL_CTX *, int , long , void *);
 
-    SSL *SSL_new (SSL_CTX *ctx);
-    void SSL_free (SSL *ssl);
-    int SSL_get_error (const SSL *ssl, int i);
-    int SSL_set_fd (SSL *ssl, int fd);
-    long SSL_ctrl (SSL *ssl, int cmd, long larg, void *parg);
-    int SSL_connect (SSL *ssl);
-    int SSL_write (SSL *ssl, const void *buf, int num);
-    int SSL_read (SSL *ssl, void *buf, int num);
-    int SSL_shutdown (SSL *ssl);
-]]
+        typedef struct ssl_st SSL;
+
+        SSL *SSL_new (SSL_CTX *);
+        void SSL_free (SSL *);
+        int SSL_get_error (const SSL *, int);
+        int SSL_set_fd (SSL *, int);
+        long SSL_ctrl (SSL *, int, long, void *);
+        int SSL_connect (SSL *);
+        int SSL_write (SSL *, const void *, int);
+        int SSL_read (SSL *, void *, int);
+        int SSL_shutdown (SSL *);
+    ]]
+end
 
 return {
     C = C,
     D = {
         AF_INET = 2,
-        AF_INET6 = 30,
+        AF_INET6 = ffi.os == "Windows" and 23 or ffi.os == "OSX" and 30 or 10,
         AF_UNSPEC = 0,
         AI_CANONNAME = 2,
         EINPROGRESS = ffi.os == "OSX" and 36 or 115,
+        FIONBIO = 0x8004667E,
+        INVALID_SOCKET = 4294967295,
         SOCK_STREAM = 1,
         SSL_CTRL_SET_MIN_PROTO_VERSION = 123,
         SSL_CTRL_SET_TLSEXT_HOSTNAME = 55,
@@ -196,5 +228,6 @@ return {
         TLS1_2_VERSION = 0x0303,
         TLSEXT_NAMETYPE_host_name = 0,
     },
-    SSL = libssl,
+    S = S,
+    SSL = SSL,
 }

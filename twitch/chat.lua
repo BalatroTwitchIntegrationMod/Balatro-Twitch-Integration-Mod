@@ -321,13 +321,20 @@ function TwitchChat:send(message)
         data = data .. formatted
     end
 
-    local bytes, err = self.client:send(data)
+    while true do
+        local bytes, err = self.client:send(data)
 
-    if bytes ~= #data then
-        return "partial"
+        if err and err ~= "timeout" then
+            self:disconnect()
+            return err
+        elseif bytes and bytes < #data then
+            data = string.sub(data, 1, bytes)
+        else
+            break
+        end
     end
 
-    return err
+    return nil
 end
 
 ---@return IRCMessage?, string?

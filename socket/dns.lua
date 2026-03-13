@@ -25,7 +25,7 @@ local function convert_to_string(address)
     local addrstr_length = 128
     local addrstr = ffi.new("char[?]", addrstr_length)
 
-    return ffi.string(lib.C.inet_ntop(address.ai_family, addr, addrstr, addrstr_length))
+    return ffi.string(lib.S.inet_ntop(address.ai_family, addr, addrstr, addrstr_length))
 end
 
 ---@class DNS
@@ -41,7 +41,7 @@ function DNS.resolve(hostname, ipv6)
     hints.ai_flags = lib.D.AI_CANONNAME
 
     local result = ffi.new("struct addrinfo *[1]")
-    local err = lib.C.getaddrinfo(hostname, nil, hints, result)
+    local err = lib.S.getaddrinfo(hostname, nil, hints, result)
 
     if err < 0 then
         return nil, "not found"
@@ -55,7 +55,7 @@ function DNS.resolve(hostname, ipv6)
         addrinfo = addrinfo[0].ai_next
     end
 
-    lib.C.freeaddrinfo(result[0])
+    lib.S.freeaddrinfo(result[0])
 
     if not ip then
         return nil, "not found"

@@ -1,18 +1,19 @@
 ---@diagnostic disable: assign-type-mismatch, cast-type-mismatch
 
 local ffi = require("ffi")
-local bit = require("bit")
 local lib = require("socket.ffi")
 local dns = require("socket.dns")
 
 ---@class SecureSocket
----@field private socket? integer
+---@field protected socket? integer
 ---@field private ctx? ffi.cdata*
 ---@field private ssl? ffi.cdata*
 local SecureSocket = {}
 
 SecureSocket.__index = SecureSocket
 
+---@param host string
+---@param port integer
 ---@return SecureSocket?, string?
 function SecureSocket:open(host, port)
     if not lib.SSL then
@@ -28,12 +29,12 @@ function SecureSocket:open(host, port)
 
     local address = ffi.new("struct sockaddr_in") ---@type sockaddr_in
     address.sin_family = lib.D.AF_INET
-    address.sin_port = lib.C.htons(port)
-    if lib.C.inet_pton(lib.D.AF_INET, ip, address.sin_addr) <= 0 then
+    address.sin_port = lib.S.htons(port)
+    if lib.S.inet_pton(lib.D.AF_INET, ip, address.sin_addr) <= 0 then
         return nil, "inet_pton"
     end
 
-    local socket = lib.C.socket(lib.D.AF_INET, lib.D.SOCK_STREAM, 0)
+    local socket = lib.S.socket(lib.D.AF_INET, lib.D.SOCK_STREAM, 0)
     if socket < 0 then
         return nil, "socket"
     end
@@ -46,7 +47,7 @@ function SecureSocket:open(host, port)
     end
 
     ---@cast address ffi.cdata*
-    local connect_err = lib.C.connect(s.socket, ffi.cast("struct sockaddr *", address), ffi.sizeof(address))
+    local connect_err = lib.S.connect(s.socket, ffi.cast("struct sockaddr *", address), ffi.sizeof(address))
     if connect_err < 0 and ffi.errno() ~= lib.D.EINPROGRESS then
         s:close()
         return nil, "connect"
@@ -117,9 +118,7 @@ function SecureSocket:close()
 
     if self.ssl ~= nil then
         local ssl_err = lib.SSL.SSL_shutdown(self.ssl)
-        if ssl_err == 0 then
-            self:receive()
-        elseif ssl_err < 0 then
+        if ssl_err ~= 0 and ssl_err ~= 1 then
             err = "ssl_shutdown"
         end
         self.ssl = nil
@@ -128,7 +127,7 @@ function SecureSocket:close()
     self.ctx = nil
 
     if self.socket ~= nil then
-        if lib.C.close(self.socket) < 0 then
+        if lib.S.close(self.socket) < 0 then
             err = "close"
         end
         self.socket = nil
@@ -150,10 +149,10 @@ function SecureSocket:send(data)
     if err == lib.D.SSL_ERROR_NONE then
         return sent, nil
     elseif err == lib.D.SSL_ERROR_WANT_READ or err == lib.D.SSL_ERROR_WANT_WRITE then
-        return sent, "timeout"
+        return nil, "timeout"
     end
 
-    return nil, "write"
+    return nil, "ssl_write"
 end
 
 ---@return string?, string?
@@ -170,11 +169,11 @@ function SecureSocket:receive()
 
     if err == lib.D.SSL_ERROR_NONE then
         return ffi.string(buffer, received), nil
-    elseif err == lib.D.SSL_ERROR_WANT_READ then
+    elseif err == lib.D.SSL_ERROR_WANT_READ or err == lib.D.SSL_ERROR_WANT_WRITE then
         return nil, "timeout"
     end
 
-    return nil, "read"
+    return nil, "ssl_read"
 end
 
 return SecureSocket
