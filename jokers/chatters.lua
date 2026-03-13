@@ -39,7 +39,7 @@ SMODS.Joker {
         return {
             vars = {
                 card.ability.extra.scaling,
-                card.ability.extra.chips * card.ability.extra.scaling
+                (card.added_to_deck and card.ability.extra.chips or mod.viewer_count) * card.ability.extra.scaling
             }
         }
     end,
