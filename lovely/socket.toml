@@ -5,13 +5,13 @@ dump_lua = true
 
 [[patches]]
 [patches.module]
-source = "socket/ffi.lua"
-name = "socket.ffi"
+source = "socket/dns.lua"
+name = "socket.dns"
 
 [[patches]]
 [patches.module]
-source = "socket/dns.lua"
-name = "socket.dns"
+source = "socket/ffi.lua"
+name = "socket.ffi"
 
 [[patches]]
 [patches.module]

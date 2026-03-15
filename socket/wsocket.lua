@@ -437,19 +437,22 @@ function SecureSocket:receive()
     local err = ffi.cast("uint32_t", lib.SSL.DecryptMessage(self.ctx, in_desc, 0, nil))
 
     if err == lib.D.SEC_E_OK then
-        local type = in_buffers[self.sizes.buffers - 1].BufferType
+        local data = ""
 
-        if type == lib.D.SECBUFFER_EMPTY then
-            self.rx.available = 0
-        elseif type == lib.D.SECBUFFER_EXTRA then
-            local length = in_buffers[self.sizes.buffers - 1].cbBuffer
-            lib.C.memmove(self.rx.buffer, self.rx.buffer + (self.rx.available - length), length)
-            self.rx.available = length
-        else
-            return nil, "secbuffer_unknown"
+        for i = 0, self.sizes.buffers - 1 do
+            local type = in_buffers[i].BufferType
+            if type == lib.D.SECBUFFER_DATA then
+                data = data .. ffi.string(in_buffers[i].pvBuffer, in_buffers[i].cbBuffer)
+            elseif type == lib.D.SECBUFFER_EXTRA then
+                local length = in_buffers[i].cbBuffer
+                lib.C.memmove(self.rx.buffer, self.rx.buffer + (self.rx.available - length), length)
+                self.rx.available = length
+            elseif type == lib.D.SECBUFFER_EMPTY then
+                self.rx.available = 0
+            end
         end
 
-        return ffi.string(in_buffers[1].pvBuffer, in_buffers[1].cbBuffer), nil
+        return data, nil
     elseif err == lib.D.SEC_E_INCOMPLETE_MESSAGE then
         return nil, "timeout"
     end
