@@ -1,13 +1,11 @@
----@diagnostic disable: assign-type-mismatch, cast-type-mismatch
-
 local ffi = require("ffi")
 local lib = require("socket.ffi")
 local dns = require("socket.dns")
 
 ---@class SecureSocket
 ---@field protected socket? integer
----@field private ctx? ffi.cdata*
----@field private ssl? ffi.cdata*
+---@field protected ctx? ffi.cdata*
+---@field protected ssl? ffi.cdata*
 local SecureSocket = {}
 
 SecureSocket.__index = SecureSocket
@@ -27,9 +25,10 @@ function SecureSocket:open(host, port)
         return nil, "dns_resolve"
     end
 
-    local address = ffi.new("struct sockaddr_in") ---@type sockaddr_in
-    address.sin_family = lib.D.AF_INET
-    address.sin_port = lib.S.htons(port)
+    local address = ffi.new("struct sockaddr_in", {
+        sin_family = lib.D.AF_INET,
+        sin_port = lib.S.htons(port),
+    })
     if lib.S.inet_pton(lib.D.AF_INET, ip, address.sin_addr) <= 0 then
         return nil, "inet_pton"
     end
@@ -46,7 +45,6 @@ function SecureSocket:open(host, port)
         return nil, "bio_socket_nbio"
     end
 
-    ---@cast address ffi.cdata*
     local connect_err = lib.S.connect(s.socket, ffi.cast("struct sockaddr *", address), ffi.sizeof(address))
     if connect_err < 0 and ffi.errno() ~= lib.D.EINPROGRESS then
         s:close()
@@ -121,17 +119,15 @@ function SecureSocket:close()
         if ssl_err ~= 0 and ssl_err ~= 1 then
             err = "ssl_shutdown"
         end
-        self.ssl = nil
     end
 
+    if lib.S.close(self.socket) < 0 then
+        err = "close"
+    end
+
+    self.ssl = nil
     self.ctx = nil
-
-    if self.socket ~= nil then
-        if lib.S.close(self.socket) < 0 then
-            err = "close"
-        end
-        self.socket = nil
-    end
+    self.socket = nil
 
     return err
 end

@@ -1,20 +1,20 @@
----@diagnostic disable: assign-type-mismatch
+---@diagnostic disable: undefined-field
 
 local ffi = require("ffi")
 local lib = require("socket.ffi")
 
----@param address addrinfo
+---@param address ffi.cdata*
 ---@return string?
 local function convert_to_string(address)
     local addr = nil
 
     if address.ai_family == lib.D.AF_INET then
-        local sockaddr = ffi.cast("struct sockaddr_in *", address.ai_addr) ---@type sockaddr_in
+        local sockaddr = ffi.cast("struct sockaddr_in *", address.ai_addr)
         addr = sockaddr.sin_addr
     end
 
     if address.ai_family == lib.D.AF_INET6 then
-        local sockaddr = ffi.cast("struct sockaddr_in6 *", address.ai_addr) ---@type sockaddr_in6
+        local sockaddr = ffi.cast("struct sockaddr_in6 *", address.ai_addr)
         addr = sockaddr.sin6_addr
     end
 
@@ -35,10 +35,11 @@ local DNS = {}
 ---@param ipv6 boolean?
 ---@return string?, "not found"?
 function DNS.resolve(hostname, ipv6)
-    local hints = ffi.new("struct addrinfo") ---@type addrinfo
-    hints.ai_family = ipv6 and lib.D.AF_INET6 or lib.D.AF_INET
-    hints.ai_socktype = lib.D.SOCK_STREAM
-    hints.ai_flags = lib.D.AI_CANONNAME
+    local hints = ffi.new("struct addrinfo", {
+        ai_family = ipv6 and lib.D.AF_INET6 or lib.D.AF_INET,
+        ai_socktype = lib.D.SOCK_STREAM,
+        ai_flags = lib.D.AI_CANONNAME,
+    })
 
     local result = ffi.new("struct addrinfo *[1]")
     local err = lib.S.getaddrinfo(hostname, nil, hints, result)
@@ -48,7 +49,7 @@ function DNS.resolve(hostname, ipv6)
     end
 
     local ip = nil
-    local addrinfo = ffi.new("struct addrinfo *", result[0]) ---@type addrinfo
+    local addrinfo = ffi.new("struct addrinfo *", result[0])
 
     while addrinfo ~= nil and ip == nil do
         ip = convert_to_string(addrinfo)

@@ -10,12 +10,12 @@ if ffi.os == "Windows" then
     S = ffi.load("Ws2_32.dll")
 
     ffi.cdef [[
-        typedef unsigned int SOCKET;
         typedef int ssize_t;
-        typedef struct WSAData WSADATA;
+        typedef unsigned int SOCKET;
 
         void *malloc (size_t);
         void free (void *);
+        void *memmove (void *, const void *, size_t);
     ]]
 else
     ffi.cdef [[
@@ -70,16 +70,6 @@ else
     ]]
 end
 
----@class addrinfo
----@field ai_flags integer
----@field ai_family integer
----@field ai_socktype integer
----@field ai_protocol integer
----@field ai_addrlen integer
----@field ai_addr ffi.cdata*
----@field ai_canonname ffi.cdata*
----@field ai_next ffi.cdata*
-
 if ffi.os == "OSX" then
     ffi.cdef [[
         struct sockaddr_in {
@@ -118,20 +108,6 @@ else
     ]]
 end
 
----@class sockaddr_in
----@field sin_len integer
----@field sin_family integer
----@field sin_port integer
----@field sin_addr table
-
----@class sockaddr_in6
----@field sin6_len integer
----@field sin6_family integer
----@field sin6_port integer
----@field sin6_flowinfo integer
----@field sin6_addr table
----@field sin6_scope_id integer
-
 ffi.cdef [[
     int getaddrinfo (const char *, const char *, const struct addrinfo *, struct addrinfo **);
     void freeaddrinfo (struct addrinfo *);
@@ -147,6 +123,8 @@ ffi.cdef [[
 
 if ffi.os == "Windows" then
     ffi.cdef [[
+        typedef struct WSAData WSADATA;
+
         int WSAStartup (unsigned short, WSADATA *);
         int WSACleanup (void);
         int closesocket (SOCKET);
@@ -175,7 +153,74 @@ end
 
 if ffi.os == "Windows" then
     ffi.cdef [[
+        typedef void *PVOID;
+        typedef char CHAR;
+        typedef char *LPSTR;
+        typedef long LONG;
+        typedef unsigned long DWORD;
+        typedef unsigned long long ULONG_PTR, *PULONG_PTR;
+        typedef LONG HRESULT;
+        typedef long SECURITY_STATUS;
+        typedef CHAR SEC_CHAR;
+        typedef struct _CERT_CONTEXT CERT_CONTEXT, *PCERT_CONTEXT;
+        typedef const CERT_CONTEXT *PCCERT_CONTEXT;
+        typedef void *HCERTSTORE;
+        struct _HMAPPER;
+        typedef unsigned int ALG_ID;
+        typedef struct _SCHANNEL_CRED {
+            DWORD dwVersion;
+            DWORD cCreds;
+            PCCERT_CONTEXT *paCred;
+            HCERTSTORE hRootStore;
+            DWORD cMappers;
+            struct _HMAPPER **aphMappers;
+            DWORD cSupportedAlgs;
+            ALG_ID * palgSupportedAlgs;
+            DWORD grbitEnabledProtocols;
+            DWORD dwMinimumCipherStrength;
+            DWORD dwMaximumCipherStrength;
+            DWORD dwSessionLifespan;
+            DWORD dwFlags;
+            DWORD dwCredFormat;
+        } SCHANNEL_CRED, *PSCHANNEL_CRED;
+        typedef struct _SecHandle {
+            ULONG_PTR dwLower;
+            ULONG_PTR dwUpper;
+        } SecHandle, *PSecHandle;
+        typedef SecHandle CredHandle;
+        typedef PSecHandle PCredHandle;
+        typedef SecHandle CtxtHandle;
+        typedef PSecHandle PCtxtHandle;
+        typedef union _LARGE_INTEGER LARGE_INTEGER;
+        typedef LARGE_INTEGER *PTimeStamp;
+        typedef void (* SEC_GET_KEY_FN) (void *, void *, unsigned long, void **, SECURITY_STATUS *);
+        typedef struct _SecBuffer {
+            unsigned long cbBuffer;
+            unsigned long BufferType;
+            void *pvBuffer;
+        } SecBuffer, *PSecBuffer;
+        typedef struct _SecBufferDesc {
+            unsigned long ulVersion;
+            unsigned long cBuffers;
+            PSecBuffer pBuffers;
+        } SecBufferDesc, *PSecBufferDesc;
+        typedef struct _SecPkgContext_StreamSizes {
+            unsigned long cbHeader;
+            unsigned long cbTrailer;
+            unsigned long cbMaximumMessage;
+            unsigned long cBuffers;
+            unsigned long cbBlockSize;
+        } SecPkgContext_StreamSizes, *PSecPkgContext_StreamSizes;
 
+        SECURITY_STATUS AcquireCredentialsHandleA (LPSTR, LPSTR, unsigned long, void *, void *, SEC_GET_KEY_FN, void *, PCredHandle, PTimeStamp);
+        SECURITY_STATUS FreeCredentialsHandle (PCredHandle);
+        SECURITY_STATUS InitializeSecurityContextA (PCredHandle, PCtxtHandle, SEC_CHAR *, unsigned long, unsigned long, unsigned long, PSecBufferDesc, unsigned long, PCtxtHandle, PSecBufferDesc, unsigned long *, PTimeStamp);
+        SECURITY_STATUS DeleteSecurityContext (PCtxtHandle);
+        SECURITY_STATUS FreeContextBuffer (PVOID);
+        SECURITY_STATUS QueryContextAttributesA (PCtxtHandle, unsigned long, void *);
+        SECURITY_STATUS EncryptMessage (PCtxtHandle, unsigned long, PSecBufferDesc, unsigned long);
+        SECURITY_STATUS DecryptMessage (PCtxtHandle, PSecBufferDesc, unsigned long, unsigned long *);
+        SECURITY_STATUS ApplyControlToken (PCtxtHandle, PSecBufferDesc);
     ]]
 else
     ffi.cdef [[
@@ -211,14 +256,15 @@ end
 return {
     C = C,
     D = {
+        -- General defines
         AF_INET = 2,
         AF_INET6 = ffi.os == "Windows" and 23 or ffi.os == "OSX" and 30 or 10,
         AF_UNSPEC = 0,
         AI_CANONNAME = 2,
-        EINPROGRESS = ffi.os == "OSX" and 36 or 115,
-        FIONBIO = 0x8004667E,
-        INVALID_SOCKET = 4294967295,
+        EINPROGRESS = ffi.os == "Windows" and 112 or ffi.os == "OSX" and 36 or 115,
         SOCK_STREAM = 1,
+
+        -- libSSL defines
         SSL_CTRL_SET_MIN_PROTO_VERSION = 123,
         SSL_CTRL_SET_TLSEXT_HOSTNAME = 55,
         SSL_ERROR_NONE = 0,
@@ -227,6 +273,37 @@ return {
         SSL_VERIFY_PEER = 1,
         TLS1_2_VERSION = 0x0303,
         TLSEXT_NAMETYPE_host_name = 0,
+
+        -- Windows specific defines
+        FIONBIO = 0x8004667E,
+        INVALID_SOCKET = 4294967295,
+        ISC_REQ_ALLOCATE_MEMORY = 0x00000100,
+        ISC_REQ_CONFIDENTIALITY = 0x00000010,
+        ISC_REQ_REPLAY_DETECT = 0x00000004,
+        ISC_REQ_SEQUENCE_DETECT = 0x00000008,
+        ISC_REQ_STREAM = 0x00008000,
+        ISC_REQ_USE_SUPPLIED_CREDS = 0x00000080,
+        SCH_CRED_AUTO_CRED_VALIDATION = 0x00000020,
+        SCH_CRED_NO_DEFAULT_CREDS = 0x00000010,
+        SCH_USE_STRONG_CRYPTO = 0x00400000,
+        SCHANNEL_CRED_VERSION = 0x00000004,
+        SCHANNEL_SHUTDOWN = 1,
+        SEC_E_INCOMPLETE_MESSAGE = 0x80090318,
+        SEC_E_OK = 0,
+        SEC_I_CONTINUE_NEEDED = 0x90312,
+        SECBUFFER_DATA = 1,
+        SECBUFFER_EMPTY = 0,
+        SECBUFFER_EXTRA = 5,
+        SECBUFFER_MISSING = 4,
+        SECBUFFER_STREAM_HEADER = 7,
+        SECBUFFER_STREAM_TRAILER = 6,
+        SECBUFFER_TOKEN = 2,
+        SECBUFFER_VERSION = 0,
+        SECPKG_ATTR_STREAM_SIZES = 4,
+        SECPKG_CRED_OUTBOUND = 2,
+        UNISP_NAME_A = "Microsoft Unified Security Protocol Provider",
+        WSAENOTCONN = 10057,
+        WSAEWOULDBLOCK = 10035,
     },
     S = S,
     SSL = SSL,

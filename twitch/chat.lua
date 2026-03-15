@@ -266,11 +266,12 @@ local function format_irc_message(message)
 end
 
 ---@param user_name string
+---@return string?
 function TwitchChat:connect(token, user_name)
     if self.state == "disconnected" then
         local client, err = socket:open("irc.chat.twitch.tv", 6697)
         if err then
-            return
+            return err
         end
 
         self.client = client
@@ -279,15 +280,22 @@ function TwitchChat:connect(token, user_name)
         self.user_name = user_name
         self.state = "connecting"
         self.handshake = "not started"
+        self.event_queued = nil
     end
+
+    return nil
 end
 
 function TwitchChat:disconnect()
     if self.state ~= "disconnected" then
+        self.client:close()
+
+        self.client = nil
+        self.buffer = ""
+        self.token = nil
+        self.user_name = nil
         self.state = "disconnected"
         self.handshake = "not started"
-        self.client:close()
-        self.client = nil
         self.event_queued = {type = "disconnected"}
     end
 end
