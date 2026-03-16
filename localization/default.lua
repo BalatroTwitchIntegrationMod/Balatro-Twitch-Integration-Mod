@@ -24,11 +24,7 @@ return {
         labels = {},
         poker_hand_descriptions = {},
         poker_hands = {},
-        quips = {
-            ttv_chatter = {
-                "#1#"
-            }
-        },
+        quips = {},
         ranks = {},
         suits_plural = {},
         suits_singular = {},

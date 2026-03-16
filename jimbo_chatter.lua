@@ -11,12 +11,20 @@ function JimboChatter:init(args)
     self.removed = false
 
     self.config = {
-        colours = {G.C.PURPLE, G.C.WHITE, G.C.BLACK, G.C.WHITE}
+        colours = { G.C.PURPLE, G.C.WHITE, G.C.BLACK, G.C.WHITE }
     }
 
-    self.children.card = Card(self.T.x, self.T.y, G.CARD_W, G.CARD_H, G.P_CARDS.empty, G.P_CENTERS["j_ttv_oneguy"], {bypass_discovery_center = true})
+    self.children.card = Card(
+        self.T.x,
+        self.T.y,
+        G.CARD_W,
+        G.CARD_H,
+        G.P_CARDS.empty,
+        G.P_CENTERS["j_ttv_oneguy"],
+        { bypass_discovery_center = true }
+    )
     self.children.card.states.visible = false
-    self.children.card:set_alignment({major = self, type = "cm", offset = {x = 0, y = 0}})
+    self.children.card:set_alignment({ major = self, type = "cm", offset = { x = 0, y = 0 } })
     self.children.card.states.collide.can = false
     self.children.card.ambient_tilt = 1
 
@@ -35,9 +43,33 @@ function JimboChatter:say(text)
     if self.children.speech_bubble then
         self.children.speech_bubble:remove()
     end
+
+    G.localization.quips_parsed.ttv_chatter = {
+        multi_line = true
+    }
+
+    local max_width = 90
+
+    while #text > 0 do
+        local sliced = string.sub(text, 1, max_width)
+        local broken, delimiter, next = string.match(sliced, "(.+)([%s%[%]\\|;:'\",<.>/%?])()")
+
+        if #sliced == max_width and broken then
+            text = string.sub(text, next)
+            table.insert(G.localization.quips_parsed.ttv_chatter, { {
+                strings = { broken .. string.gsub(delimiter, "%s", "") }, control = {}
+            } })
+        else
+            text = ""
+            table.insert(G.localization.quips_parsed.ttv_chatter, { {
+                strings = { sliced }, control = {}
+            } })
+        end
+    end
+
     self.children.speech_bubble = UIBox({
-        definition = G.UIDEF.speech_bubble("ttv_chatter", {text, quip = true}),
-        config = {align = "cr", offset = {x = 0, y = 0}, parent = self}
+        definition = G.UIDEF.speech_bubble("ttv_chatter", { quip = true }),
+        config = { align = "cr", offset = { x = 0, y = 0 }, parent = self }
     })
     self.children.speech_bubble:set_role({
         role_type = "Minor",
