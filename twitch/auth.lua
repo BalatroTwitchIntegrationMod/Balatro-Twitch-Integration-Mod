@@ -1,6 +1,3 @@
----@type Mod
-local mod = SMODS.Mods.twitchintegration
-
 ---@class TwitchAuth
 ---@field private client_id string
 ---@field private thread? love.Thread
@@ -11,6 +8,8 @@ local TwitchAuth = {
 ---@private
 TwitchAuth.__index = TwitchAuth
 
+local url_utils = require("twitch.url")
+
 ---@param scope string
 function TwitchAuth:start_auth(scope)
     if self:is_running() then
@@ -20,8 +19,7 @@ function TwitchAuth:start_auth(scope)
     love.thread.getChannel("twitchintegration.auth.token"):clear()
 
     self.thread = love.thread.newThread([[
-        local RESPONSE_REDIRECT = "<html><head><script>location.href = '/token?' + location.hash.substr(1)</script></head></html>"
-        local RESPONSE_DONE = "<html><head><title>Balatro Twitch Integration</title><script>history.replaceState(null, '', 'http://localhost:3480/done');</script></head><body>You can close this window.</body></html>"
+        local RESPONSE_REDIRECT, RESPONSE_DONE, PORT = ...
 
         local timer = require("love.timer")
         local socket = require("socket")
@@ -29,7 +27,7 @@ function TwitchAuth:start_auth(scope)
         local connection = nil
 
         server:settimeout(0)
-        server:bind('localhost', 3480)
+        server:bind('localhost', PORT)
         server:listen()
 
         local get_message = function()
@@ -89,12 +87,42 @@ function TwitchAuth:start_auth(scope)
         end
     ]])
 
-    self.thread:start()
+    local RESPONSE_REDIRECT = [[
+        <html>
+            <head>
+                <script>location.href = '/token?' + location.hash.substr(1);</script>
+            </head>
+        </html>
+    ]]
+    local RESPONSE_DONE = [[
+        <html>
+            <head>
+                <title>Balatro Twitch Integration</title>
+                <script>history.replaceState(null, '', 'http://localhost:3480/done');</script>
+                <style>
+                    body {
+                        margin: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+                        font-size: 32px;
+                        color: #D0D0D0;
+                        background-color: #0A0A0A;
+                    }
+                </style>
+            </head>
+            <body>You can close this window</body>
+        </html>
+    ]]
+    local PORT = 3480
 
-    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. mod.utils.format_url_params({
+    self.thread:start(RESPONSE_REDIRECT, RESPONSE_DONE, PORT)
+
+    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. url_utils.format_url_params({
         client_id = self.client_id,
         force_verify = "true",
-        redirect_uri = "http://localhost:3480",
+        redirect_uri = "http://localhost:" .. PORT,
         response_type = "token",
         scope = scope
     }))

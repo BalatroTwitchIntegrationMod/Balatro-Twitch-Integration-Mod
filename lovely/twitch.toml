@@ -1,0 +1,29 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+dump_lua = true
+
+[[patches]]
+[patches.module]
+source = "twitch/api.lua"
+name = "twitch.api"
+
+[[patches]]
+[patches.module]
+source = "twitch/auth.lua"
+name = "twitch.auth"
+
+[[patches]]
+[patches.module]
+source = "twitch/chat.lua"
+name = "twitch.chat"
+
+[[patches]]
+[patches.module]
+source = "twitch/lib.lua"
+name = "twitch.lib"
+
+[[patches]]
+[patches.module]
+source = "twitch/url.lua"
+name = "twitch.url"

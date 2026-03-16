@@ -16,7 +16,7 @@
 ---@field is_subscriber boolean
 
 ---@class TwitchChat
----@field client? TCPSocketClient
+---@field client? SecureSocket
 ---@field buffer string
 ---@field token string
 ---@field user_name string
@@ -51,7 +51,7 @@ TwitchChat.__index = TwitchChat
 
 ---@alias TwitchChatEvent EventConnected | EventDisconnected | EventJoined | EventMessage | EventClear
 
-local socket = require("socket")
+local socket = require("socket.secure")
 
 ---@param value string
 ---@return string
@@ -266,23 +266,13 @@ local function format_irc_message(message)
 end
 
 ---@param user_name string
+---@return string?
 function TwitchChat:connect(token, user_name)
     if self.state == "disconnected" then
-        local client = socket.tcp()
-
-        if not client then
-            return
+        local client, err = socket:open("irc.chat.twitch.tv", 6697)
+        if err then
+            return err
         end
-
-        client:settimeout(0)
-
-        local _, err = client:connect("irc.chat.twitch.tv", 6667)
-        if err and err ~= "timeout" then
-            client:close()
-            return
-        end
-
-        ---@cast client TCPSocketClient
 
         self.client = client
         self.buffer = ""
@@ -290,15 +280,22 @@ function TwitchChat:connect(token, user_name)
         self.user_name = user_name
         self.state = "connecting"
         self.handshake = "not started"
+        self.event_queued = nil
     end
+
+    return nil
 end
 
 function TwitchChat:disconnect()
     if self.state ~= "disconnected" then
+        self.client:close()
+
+        self.client = nil
+        self.buffer = ""
+        self.token = nil
+        self.user_name = nil
         self.state = "disconnected"
         self.handshake = "not started"
-        self.client:close()
-        self.client = nil
         self.event_queued = {type = "disconnected"}
     end
 end
@@ -332,31 +329,44 @@ function TwitchChat:send(message)
         data = data .. formatted
     end
 
-    local bytes, err = self.client:send(data)
+    while true do
+        local bytes, err = self.client:send(data)
 
-    if bytes ~= #data then
-        return "partial"
+        if err and err ~= "timeout" then
+            self:disconnect()
+            return err
+        elseif bytes and bytes < #data then
+            data = string.sub(data, 1, bytes)
+        else
+            break
+        end
     end
 
-    return err
+    return nil
 end
 
 ---@return IRCMessage?, string?
 ---@private
 function TwitchChat:receive()
-    local line, err, partial = self.client:receive("*l")
+    local data, err = self.client:receive()
 
-    if line then
-        if #self.buffer > 0 then
-            line = self.buffer .. line
-            self.buffer = ""
-        end
-
-        return parse_irc_message(line)
+    if data then
+        self.buffer = self.buffer .. data
     end
 
-    if err == "timeout" and #partial > 0 then
-        self.buffer = self.buffer .. partial
+    if #self.buffer > 0 then
+        local line, line_end = string.match(self.buffer, "(.-)\n()")
+        if line then
+            self.buffer = string.sub(self.buffer, line_end)
+            if string.sub(line, #line) == "\r" then
+                line = string.sub(line, 1, #line - 1)
+            end
+            return parse_irc_message(line), nil
+        end
+    end
+
+    if err and err ~= "timeout" then
+        self:disconnect()
     end
 
     return nil, err
@@ -384,11 +394,10 @@ end
 ---@param event fun(event: TwitchChatEvent)
 function TwitchChat:process(event)
     if self.state == "connecting" then
-        local _, writable, err = socket.select(nil, {self.client}, 0)
-
-        if err and err ~= "timeout" then
+        local ready, err = self.client:connect()
+        if err then
             self:disconnect()
-        elseif writable and writable[1] then
+        elseif ready then
             self.state = "handshake"
             self.handshake = "cap req"
         end

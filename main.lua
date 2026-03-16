@@ -15,16 +15,9 @@ G.alien_jumpscare_active = nil
 local TWITCH_CLIENT_ID = "iu1n0iv7lqs1g9bhoxa6z58bl91swl"
 local TWITCH_CLIENT_SCOPE = "channel:moderate user:read:chat user:write:chat chat:edit chat:read moderator:manage:banned_users"
 
----@type Twitch
-local twitch = assert(SMODS.load_file("twitch/lib.lua"))()
-
----@type TwitchAuth
+local twitch = require("twitch.lib")
 local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID)
-
----@type TwitchApi
 local twitch_api = twitch.api:new(TWITCH_CLIENT_ID, mod_obj.config.token)
-
----@type TwitchChat
 local twitch_chat = twitch.chat:new()
 
 local chat_commands = assert(SMODS.load_file("commands.lua"))()
@@ -32,6 +25,10 @@ local chat_commands = assert(SMODS.load_file("commands.lua"))()
 ---@alias ConnectionState "disconnected" | "authenticating" | "authenticated" | "connecting" | "connected"
 ---@type ConnectionState
 local connection_state = mod_obj.config.token and "authenticated" or "disconnected"
+
+---@alias ChatState "disconnected" | "connecting" | "joining" | "joined"
+---@type ChatState
+local chat_state = "disconnected"
 
 ---@type GetUsersResponse?
 local connected_user = nil
@@ -55,13 +52,22 @@ local function get_config_tab_parameters()
         connected = {"Connected", G.C.GREEN, "DISCONNECT", G.C.BLUE}
     })[connection_state]
 
+    local chat_params = ({
+        disconnected = {"Disconnected", G.C.RED},
+        connecting = {"Connecting...", G.C.BLUE},
+        joining = {"Joining...", G.C.BLUE},
+        joined = {"Joined", G.C.GREEN}
+    })[chat_state]
+
     return {
         status_text = params[1],
         status_color = params[2],
-        button_text = params[3],
-        button_color = params[4],
+        chat_text = chat_params[1],
+        chat_color = chat_params[2],
         user_text = connected_user and connected_user.login or "none",
-        user_color = connected_user and G.C.PURPLE or G.C.GREY
+        user_color = connected_user and G.C.PURPLE or G.C.GREY,
+        button_text = params[3],
+        button_color = params[4]
     }
 end
 
@@ -75,14 +81,21 @@ mod_obj.config_tab = function()
             n = G.UIT.R,
             config = {align = "cm"},
             nodes = {
-                {n = G.UIT.T, config = {text = "Status: ", scale = 0.4, colour = G.C.WHITE}},
+                {n = G.UIT.T, config = {text = "Twitch API: ", scale = 0.4, colour = G.C.WHITE}},
                 {n = G.UIT.T, config = {text = p.status_text, scale = 0.4, colour = p.status_color, id = "ttv_connect_status"}}
             }
         }, {
             n = G.UIT.R,
             config = {align = "cm"},
             nodes = {
-                {n = G.UIT.T, config = {text = "Login: ", scale = 0.4, colour = G.C.WHITE}},
+                {n = G.UIT.T, config = {text = "Twitch Chat: ", scale = 0.4, colour = G.C.WHITE}},
+                {n = G.UIT.T, config = {text = p.chat_text, scale = 0.4, colour = p.chat_color, id = "ttv_chat_status"}}
+            }
+        }, {
+            n = G.UIT.R,
+            config = {align = "cm"},
+            nodes = {
+                {n = G.UIT.T, config = {text = "Channel: ", scale = 0.4, colour = G.C.WHITE}},
                 {n = G.UIT.T, config = {text = p.user_text, scale = 0.4, colour = p.user_color, id = "ttv_user"}}
             }
         }, {
@@ -122,6 +135,13 @@ local function update_config_tab()
         connect_status.UIBox:recalculate()
     end
 
+    local chat_status = G.OVERLAY_MENU:get_UIE_by_ID("ttv_chat_status")
+    if chat_status then
+        chat_status.config.text = p.chat_text
+        chat_status.config.colour = p.chat_color
+        chat_status.UIBox:recalculate()
+    end
+
     local user_text = G.OVERLAY_MENU:get_UIE_by_ID("ttv_user")
     if user_text then
         user_text.config.text = p.user_text
@@ -151,6 +171,12 @@ end
 ---@param state ConnectionState
 local function update_connection_state(state)
     connection_state = state
+    update_config_tab()
+end
+
+---@param state ChatState
+local function update_chat_state(state)
+    chat_state = state
     update_config_tab()
 end
 
@@ -272,6 +298,7 @@ end
 local function update_twitch_chat()
     if twitch_chat.state == "disconnected" and connected_user then
         log("Connecting to the Twitch chat...")
+        update_chat_state("connecting")
         twitch_chat:connect(mod_obj.config.token, connected_user.login)
     end
 
@@ -280,10 +307,12 @@ local function update_twitch_chat()
 
         if type == "disconnected" then
             log("Disconnected from the Twitch chat")
+            update_chat_state("disconnected")
         end
 
         if type == "connected" then
             log("Connected to the Twitch chat")
+            update_chat_state("joining")
             if connected_user then
                 twitch_chat:join(connected_user.login)
             end
@@ -291,6 +320,7 @@ local function update_twitch_chat()
 
         if type == "joined" then
             log("Joined the [#" .. event.channel .. "] room")
+            update_chat_state("joined")
             -- twitch_chat:send_message(event.channel, "[Balatro Twitch Integration] Successfully connected")
         end
 

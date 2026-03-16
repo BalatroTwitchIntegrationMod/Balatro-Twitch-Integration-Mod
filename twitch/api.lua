@@ -1,6 +1,3 @@
----@type Mod
-local mod = SMODS.Mods.twitchintegration
-
 ---@class TwitchApi
 ---@field private client_id string
 ---@field private token string
@@ -20,9 +17,8 @@ TwitchApi.__index = TwitchApi
 
 ---@module "https.smods-https"
 local https = require("SMODS.https")
-
----@module "lib.json"
-local json = SMODS.load_file("lib/json.lua")()
+local json = require("json")
+local url_utils = require("twitch.url")
 
 ---@param payload Payload
 ---@return string, table
@@ -31,7 +27,7 @@ function TwitchApi:prepare_request_data(payload)
     local url = "https://api.twitch.tv/helix/" .. payload.endpoint
 
     if payload.params then
-        url = url .. "?" .. mod.utils.format_url_params(payload.params)
+        url = url .. "?" .. url_utils.format_url_params(payload.params)
     end
 
     local options = {

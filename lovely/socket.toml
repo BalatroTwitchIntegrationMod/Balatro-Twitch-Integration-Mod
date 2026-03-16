@@ -1,0 +1,29 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+dump_lua = true
+
+[[patches]]
+[patches.module]
+source = "socket/dns.lua"
+name = "socket.dns"
+
+[[patches]]
+[patches.module]
+source = "socket/ffi.lua"
+name = "socket.ffi"
+
+[[patches]]
+[patches.module]
+source = "socket/secure.lua"
+name = "socket.secure"
+
+[[patches]]
+[patches.module]
+source = "socket/usocket.lua"
+name = "socket.usocket"
+
+[[patches]]
+[patches.module]
+source = "socket/wsocket.lua"
+name = "socket.wsocket"
