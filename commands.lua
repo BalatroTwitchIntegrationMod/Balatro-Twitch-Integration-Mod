@@ -91,7 +91,11 @@ local jimbo_chatter = nil
 chat_commands.text = function(_, user, text_to_show)
     if not whitelist[user:lower()] then return end
     if not jimbo_chatter or jimbo_chatter.removed then
-        jimbo_chatter = JimboChatter({x = 4.8, y = 3.4})
+        jimbo_chatter = JimboChatter(G.STAGE == G.STAGES.MAIN_MENU and {
+            x = 9, y = 3.15, speech_bubble_align = "bm"
+        } or {
+            x = 5, y = 3.5, speech_bubble_align = "cr"
+        })
     end
     jimbo_chatter:say(text_to_show)
 end

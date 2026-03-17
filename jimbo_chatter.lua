@@ -1,9 +1,9 @@
 ---@class JimboChatter: Moveable
 JimboChatter = Moveable:extend()
 
----@param args {x: number, y: number, w: number, h: number}
+---@param args {x?: number, y?: number, w?: number, h?: number, speech_bubble_align?: string}
 function JimboChatter:init(args)
-    Moveable.init(self, args.x or 1, args.y or 1, args.w or G.CARD_W * 1.1, args.h or G.CARD_H * 1.1)
+    Moveable.init(self, args.x or 1, args.y or 1, args.w or G.CARD_W * 1, args.h or G.CARD_H * 1)
 
     self.children = {}
 
@@ -11,7 +11,8 @@ function JimboChatter:init(args)
     self.removed = false
 
     self.config = {
-        colours = { G.C.PURPLE, G.C.WHITE, G.C.BLACK, G.C.WHITE }
+        colours = { G.ARGS.LOC_COLOURS.ttv_purple, G.C.WHITE, G.ARGS.LOC_COLOURS.ttv_purple2, G.C.BLACK },
+        speech_bubble_align = args.speech_bubble_align or "bm"
     }
 
     self.children.card = Card(
@@ -48,19 +49,23 @@ function JimboChatter:say(text)
         multi_line = true
     }
 
-    local max_width = 90
+    local max_width = 85
 
     while #text > 0 do
-        local sliced = string.sub(text, 1, max_width)
-        local broken, delimiter, next = string.match(sliced, "(.+)([%s%[%]\\|;:'\",<.>/%?])()")
+        text = string.gsub(text, "%s+", " ")
+        text = string.gsub(text, "^%s", "")
+        text = string.gsub(text, "%s$", "")
 
-        if #sliced == max_width and broken then
+        local sliced = string.sub(text, 1, max_width)
+        local broken, delimiter, next = string.match(sliced, "(.*)([%s%[%]\\|;:'\",<.>/%?])()")
+
+        if #sliced == max_width and broken and delimiter and next then
             text = string.sub(text, next)
             table.insert(G.localization.quips_parsed.ttv_chatter, { {
                 strings = { broken .. string.gsub(delimiter, "%s", "") }, control = {}
             } })
         else
-            text = ""
+            text = string.sub(text, max_width + 1)
             table.insert(G.localization.quips_parsed.ttv_chatter, { {
                 strings = { sliced }, control = {}
             } })
@@ -69,7 +74,7 @@ function JimboChatter:say(text)
 
     self.children.speech_bubble = UIBox({
         definition = G.UIDEF.speech_bubble("ttv_chatter", { quip = true }),
-        config = { align = "cr", offset = { x = 0, y = 0 }, parent = self }
+        config = { align = self.config.speech_bubble_align, offset = { x = 0, y = 0 }, parent = self }
     })
     self.children.speech_bubble:set_role({
         role_type = "Minor",
