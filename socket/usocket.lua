@@ -3,7 +3,7 @@ local lib = require("socket.ffi")
 local dns = require("socket.dns")
 
 ---@class SecureSocket
----@field protected socket? integer
+---@field protected socket? number
 ---@field protected ctx? ffi.cdata*
 ---@field protected ssl? ffi.cdata*
 local SecureSocket = {}
@@ -11,7 +11,7 @@ local SecureSocket = {}
 SecureSocket.__index = SecureSocket
 
 ---@param host string
----@param port integer
+---@param port number|string
 ---@return SecureSocket?, string?
 function SecureSocket:open(host, port)
     if not lib.SSL then
@@ -27,7 +27,7 @@ function SecureSocket:open(host, port)
 
     local address = ffi.new("struct sockaddr_in", {
         sin_family = lib.D.AF_INET,
-        sin_port = lib.S.htons(port),
+        sin_port = lib.S.htons(tonumber(port)),
     })
     if lib.S.inet_pton(lib.D.AF_INET, ip, address.sin_addr) <= 0 then
         return nil, "inet_pton"
@@ -133,7 +133,7 @@ function SecureSocket:close()
 end
 
 ---@param data string
----@return integer?, string?
+---@return number?, string?
 function SecureSocket:send(data)
     if self.socket == nil then
         return nil, "closed"
@@ -164,7 +164,7 @@ function SecureSocket:receive()
     local err = lib.SSL.SSL_get_error(self.ssl, received)
 
     if err == lib.D.SSL_ERROR_NONE then
-        return ffi.string(buffer, received), nil
+        return received >= 0 and ffi.string(buffer, received) or nil, nil
     elseif err == lib.D.SSL_ERROR_WANT_READ or err == lib.D.SSL_ERROR_WANT_WRITE then
         return nil, "timeout"
     end

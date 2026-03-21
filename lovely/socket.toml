@@ -25,5 +25,10 @@ name = "socket.usocket"
 
 [[patches]]
 [patches.module]
+source = "socket/utils.lua"
+name = "socket.utils"
+
+[[patches]]
+[patches.module]
 source = "socket/wsocket.lua"
 name = "socket.wsocket"

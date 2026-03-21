@@ -22,8 +22,3 @@ name = "twitch.chat"
 [patches.module]
 source = "twitch/lib.lua"
 name = "twitch.lib"
-
-[[patches]]
-[patches.module]
-source = "twitch/url.lua"
-name = "twitch.url"

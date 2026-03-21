@@ -6,9 +6,9 @@ local dns = require("socket.dns")
 ---@class WinSecureSocket: SecureSocket
 ---@field private handle ffi.cdata*
 ---@field private host string
----@field private rx {length: integer, available: integer, buffer: ffi.cdata*}
----@field private tx {length: integer, buffer: ffi.cdata*}
----@field private sizes {header: integer, trailer: integer, message: integer, buffers: integer}
+---@field private rx {length: number, available: number, buffer: ffi.cdata*}
+---@field private tx {length: number, buffer: ffi.cdata*}
+---@field private sizes {header: number, trailer: number, message: number, buffers: number}
 local SecureSocket = {}
 
 SecureSocket.__index = SecureSocket
@@ -22,9 +22,9 @@ local isc_flags = bit.bor(
     lib.D.ISC_REQ_USE_SUPPLIED_CREDS
 )
 
----@param major integer
----@param minor integer
----@return integer
+---@param major number
+---@param minor number
+---@return number
 local function wsa_version(major, minor)
     return bit.bor(major, bit.lshift(minor, 8))
 end
@@ -55,7 +55,7 @@ function SecureSocket:open(host, port)
 
     local address = ffi.new("struct sockaddr_in", {
         sin_family = lib.D.AF_INET,
-        sin_port = lib.S.htons(port)
+        sin_port = lib.S.htons(tonumber(port))
     })
     if lib.S.inet_pton(lib.D.AF_INET, ip, address.sin_addr) <= 0 then
         return nil, "inet_pton"
@@ -323,8 +323,9 @@ function SecureSocket:close()
 end
 
 ---@param raw_buffer ffi.cdata*
----@param length integer
----@return integer?, string?
+---@param length number
+---@return number?, string?
+---@private
 function SecureSocket:write_raw(raw_buffer, length)
     local bytes = ffi.cast("int", lib.S.send(self.socket, raw_buffer, length, 0))
 
@@ -388,8 +389,9 @@ function SecureSocket:send(data)
 end
 
 ---@param raw_buffer ffi.cdata*
----@param length integer
----@return integer?, string?
+---@param length number
+---@return number?, string?
+---@private
 function SecureSocket:read_raw(raw_buffer, length)
     local bytes = ffi.cast("int", lib.S.recv(self.socket, raw_buffer, length, 0))
 

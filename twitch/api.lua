@@ -1,10 +1,7 @@
 ---@class TwitchApi
 ---@field private client_id string
 ---@field private token string
-local TwitchApi = {
-    client_id = "__INVALID_CLIENT_ID__",
-    token = "__INVALID_TOKEN__"
-}
+local TwitchApi = {}
 
 ---@private
 TwitchApi.__index = TwitchApi
@@ -18,7 +15,7 @@ TwitchApi.__index = TwitchApi
 ---@module "https.smods-https"
 local https = require("SMODS.https")
 local json = require("json")
-local url_utils = require("twitch.url")
+local utils = require("socket.utils")
 
 ---@param payload Payload
 ---@return string, table
@@ -27,7 +24,7 @@ function TwitchApi:prepare_request_data(payload)
     local url = "https://api.twitch.tv/helix/" .. payload.endpoint
 
     if payload.params then
-        url = url .. "?" .. url_utils.format_url_params(payload.params)
+        url = url .. "?" .. utils.format_url_params(payload.params)
     end
 
     local options = {
@@ -82,7 +79,7 @@ function TwitchApi.ban_user(self, params, callback)
                 reason = params.reason
             }
         }
-    }, function (response)
+    }, function(response)
         if callback then
             callback(response and response.data)
         end
@@ -96,7 +93,7 @@ function TwitchApi:get_streams(params, callback)
     return self:request({
         endpoint = "streams",
         params = params
-    }, function (response)
+    }, function(response)
         if callback then
             callback(response and response.data, response and response.pagination)
         end
@@ -110,7 +107,7 @@ function TwitchApi:get_users(params, callback)
     return self:request({
         endpoint = "users",
         params = params
-    }, function (response)
+    }, function(response)
         if callback then
             callback(response and response.data)
         end

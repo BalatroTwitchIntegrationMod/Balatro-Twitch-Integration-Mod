@@ -13,10 +13,17 @@ mod_obj.viewer_count = 0
 G.alien_jumpscare_active = nil
 
 local TWITCH_CLIENT_ID = "iu1n0iv7lqs1g9bhoxa6z58bl91swl"
-local TWITCH_CLIENT_SCOPE = "channel:moderate user:read:chat user:write:chat chat:edit chat:read moderator:manage:banned_users"
+local TWITCH_CLIENT_SCOPE = {
+    "channel:moderate",
+    "chat:edit",
+    "chat:read",
+    "moderator:manage:banned_users",
+    "user:read:chat",
+    "user:write:chat",
+}
 
 local twitch = require("twitch.lib")
-local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID)
+local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID, TWITCH_CLIENT_SCOPE, mod_obj.path)
 local twitch_api = twitch.api:new(TWITCH_CLIENT_ID, mod_obj.config.token)
 local twitch_chat = twitch.chat:new()
 
@@ -194,7 +201,7 @@ G.FUNCS.twitch_connect_trigger = function(e)
         twitch_auth:abort_auth()
     else
         log("Waiting for token from browser...")
-        twitch_auth:start_auth(TWITCH_CLIENT_SCOPE)
+        twitch_auth:start_auth()
         update_connection_state("authenticating")
     end
 end

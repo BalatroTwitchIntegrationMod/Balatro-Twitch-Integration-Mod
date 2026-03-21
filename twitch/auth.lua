@@ -1,156 +1,146 @@
 ---@class TwitchAuth
 ---@field private client_id string
+---@field private scope string[]
+---@field private port number
+---@field private path string
+---@field private channel string
 ---@field private thread? love.Thread
-local TwitchAuth = {
-    client_id = "__INVALID_CLIENT_ID__"
-}
+local TwitchAuth = {}
 
 ---@private
 TwitchAuth.__index = TwitchAuth
 
-local url_utils = require("twitch.url")
+local utils = require("socket.utils")
+local json = require("json")
 
----@param scope string
-function TwitchAuth:start_auth(scope)
-    if self:is_running() then
-        return
-    end
+local whitelist = {}
 
-    love.thread.getChannel("twitchintegration.auth.token"):clear()
-
-    self.thread = love.thread.newThread([[
-        local RESPONSE_REDIRECT, RESPONSE_DONE, PORT = ...
-
-        local timer = require("love.timer")
-        local socket = require("socket")
-        local server = socket.tcp()
-        local connection = nil
-
-        server:settimeout(0)
-        server:bind('localhost', PORT)
-        server:listen()
-
-        local get_message = function()
-            return love.thread.getChannel("twitchintegration.auth.server"):pop()
-        end
-
-        local send_token = function(token)
-            love.thread.getChannel("twitchintegration.auth.token"):push({value = token})
-        end
-
-        local format_response = function(body)
-            headers = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: text/html\r\n"
-            return headers .. "Content-Length: " .. tostring(#body) .. "\r\n\r\n" .. body
-        end
-
-        while true do
-            local message = get_message()
-            if message == "kill" then
-                send_token()
-                break
-            end
-
-            if not connection then
-                timer.sleep(1/240)
-                connection = server:accept()
-            else
-                local response, err = connection:receive("*l")
-                if err and err ~= "timeout" then
-                    connection:close()
-                    connection = nil
-                end
-                if response then
-                    local request = response:match("^GET (.+) HTTP.+")
-                    if request then
-                        local error = request:match("error=([^&]+)")
-                        local token = request:match("access_token=([^&]+)")
-                        if error or token then
-                            connection:send(format_response(RESPONSE_DONE))
-                            send_token(token)
-                            break
-                        else
-                            connection:send(format_response(RESPONSE_REDIRECT))
-                        end
-                        connection:close()
-                        connection = nil
-                    end
-                end
-            end
-        end
-
-        if connection then
-            connection:close()
-        end
-
-        if server then
-            server:close()
-        end
-    ]])
-
-    local RESPONSE_REDIRECT = [[
-        <html>
-            <head>
-                <script>location.href = '/token?' + location.hash.substr(1);</script>
-            </head>
-        </html>
-    ]]
-    local RESPONSE_DONE = [[
-        <html>
-            <head>
-                <title>Balatro Twitch Integration</title>
-                <script>history.replaceState(null, '', 'http://localhost:3480/done');</script>
-                <style>
-                    body {
-                        margin: 0;
-                        display: flex;
-                        justify-content: center;
-                        align-items: center;
-                        font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
-                        font-size: 32px;
-                        color: #D0D0D0;
-                        background-color: #0A0A0A;
-                    }
-                </style>
-            </head>
-            <body>You can close this window</body>
-        </html>
-    ]]
-    local PORT = 3480
-
-    self.thread:start(RESPONSE_REDIRECT, RESPONSE_DONE, PORT)
-
-    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. url_utils.format_url_params({
-        client_id = self.client_id,
-        force_verify = "true",
-        redirect_uri = "http://localhost:" .. PORT,
-        response_type = "token",
-        scope = scope
-    }))
-end
-
-function TwitchAuth:abort_auth()
-    if self:is_running() then
-        love.thread.getChannel("twitchintegration.auth.server"):push("kill")
-        self.thread:wait()
+local function add_to_whitelist(path)
+    for _, v in ipairs(type(path) == "string" and { path } or path) do
+        whitelist[v] = true
     end
 end
+
+local function is_whitelisted(path)
+    return whitelist[path] ~= nil
+end
+
+add_to_whitelist({
+    "auth.html"
+})
 
 ---@return boolean
 function TwitchAuth:is_running()
     return self.thread and self.thread:isRunning() or false
 end
 
----@return {value?: string}
+function TwitchAuth:start_auth()
+    if self:is_running() then
+        return
+    end
+
+    love.thread.getChannel(self.channel .. ".tx"):clear()
+    love.thread.getChannel(self.channel .. ".rx"):clear()
+
+    self.thread = love.thread.newThread(self.path .. "server.lua")
+
+    self.thread:start(self.channel, self.port)
+
+    love.system.openURL("https://id.twitch.tv/oauth2/authorize?" .. utils.format_url_params({
+        client_id = self.client_id,
+        force_verify = "true",
+        redirect_uri = "http://localhost:" .. self.port,
+        response_type = "token",
+        scope = table.concat(self.scope, " "),
+    }))
+end
+
+function TwitchAuth:abort_auth()
+    if self:is_running() then
+        self:send({ type = "kill" })
+        self.thread:wait()
+    end
+end
+
+---@return ServerMessage?
+---@private
+function TwitchAuth:receive()
+    return love.thread.getChannel(self.channel .. ".rx"):pop()
+end
+
+---@param message ServerMessage
+---@private
+function TwitchAuth:send(message)
+    love.thread.getChannel(self.channel .. ".tx"):push(message)
+end
+
+---@param response HttpResponse
+---@private
+function TwitchAuth:send_response(response)
+    self:send({
+        type = "response",
+        response = response
+    })
+end
+
+---@return {value: string}?
 function TwitchAuth:get_token()
-    return love.thread.getChannel("twitchintegration.auth.token"):pop()
+    local message = self:receive()
+
+    if message then
+        if message.type == "kill" then
+            return { value = nil }
+        end
+
+        if message.type == "request" then
+            local request = message.request ---@type HttpRequest
+
+            if request.path == "token" then
+                self:send_response({
+                    headers = { ["content-type"] = "application/json" },
+                    body = json.encode({ ok = true }),
+                })
+                self:send({ type = "kill" })
+                return { value = request.params["access_token"] }
+            else
+                if request.path == "" then
+                    request.path = "auth.html"
+                end
+
+                local body = is_whitelisted(request.path) and love.filesystem.read(self.path .. request.path) or nil
+
+                self:send_response({
+                    code = body and 200 or 404,
+                    status = not body and "Not found" or nil,
+                    body = body or "Not found",
+                })
+            end
+        end
+
+        if message.type == "error" then
+            self:send_response({
+                code = 400,
+                status = "Bad request",
+                body = "Bad request",
+            })
+        end
+    end
+
+    return nil
 end
 
 ---@param client_id string
+---@param scope string[]
+---@param path string?
 ---@return TwitchAuth
-function TwitchAuth:new(client_id)
+function TwitchAuth:new(client_id, scope, path)
     ---@type TwitchAuth
     local o = {
-        client_id = client_id
+        client_id = client_id,
+        scope = scope,
+        port = 3480,
+        channel = "twitchintegration.auth",
+        path = (path or "") .. "twitch/"
     }
     return setmetatable(o, self)
 end

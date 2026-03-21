@@ -170,7 +170,7 @@ end
 ---@return IRCMessage
 local function parse_irc_message(message_string)
     local message = {
-        command = "__INVALID__"
+        command = "__INVALID_COMMAND__"
     }
 
     local tags, tags_end = string.match(message_string, "^@(.-)%s+()")
@@ -296,7 +296,7 @@ function TwitchChat:disconnect()
         self.user_name = nil
         self.state = "disconnected"
         self.handshake = "not started"
-        self.event_queued = {type = "disconnected"}
+        self.event_queued = { type = "disconnected" }
     end
 end
 
@@ -319,7 +319,7 @@ end
 function TwitchChat:send(message)
     local data = ""
 
-    for _, v in ipairs(message[1] and message or {message}) do
+    for _, v in ipairs(message[1] and message or { message }) do
         local formatted = format_irc_message(v)
 
         if not formatted then
@@ -433,7 +433,7 @@ function TwitchChat:process(event)
         end
 
         if self.handshake == "login" then
-            local err = self:send({{
+            local err = self:send({ {
                 command = "PASS",
                 params = {
                     "oauth:" .. self.token
@@ -443,7 +443,7 @@ function TwitchChat:process(event)
                 params = {
                     self.user_name
                 }
-            }})
+            } })
             if err then
                 self:disconnect()
             else
@@ -461,7 +461,7 @@ function TwitchChat:process(event)
                 else
                     self.state = "connected"
                     self.handshake = "done"
-                    event({type = "connected"})
+                    event({ type = "connected" })
                 end
             end
         end
