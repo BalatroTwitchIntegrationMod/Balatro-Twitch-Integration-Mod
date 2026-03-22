@@ -10,8 +10,9 @@ local TwitchAuth = {}
 ---@private
 TwitchAuth.__index = TwitchAuth
 
-local utils = require("socket.utils")
+local nativefs = require("nativefs")
 local json = require("json")
+local utils = require("socket.utils")
 
 local whitelist = {}
 
@@ -42,7 +43,8 @@ function TwitchAuth:start_auth()
     love.thread.getChannel(self.channel .. ".tx"):clear()
     love.thread.getChannel(self.channel .. ".rx"):clear()
 
-    self.thread = love.thread.newThread(self.path .. "server.lua")
+    local server_code = assert(nativefs.read(self.path .. "server.lua"), "Auth server code not found")
+    self.thread = love.thread.newThread(server_code)
 
     self.thread:start(self.channel, self.port)
 
@@ -93,26 +95,28 @@ function TwitchAuth:get_token()
         end
 
         if message.type == "request" then
-            local request = message.request ---@type HttpRequest
+            local request = message.request
 
             if request.path == "token" then
                 self:send_response({
-                    headers = { ["content-type"] = "application/json" },
+                    headers = { ["Content-Type"] = "application/json" },
                     body = json.encode({ ok = true }),
                 })
+
                 self:send({ type = "kill" })
+
                 return { value = request.params["access_token"] }
             else
                 if request.path == "" then
                     request.path = "auth.html"
                 end
 
-                local body = is_whitelisted(request.path) and love.filesystem.read(self.path .. request.path) or nil
+                local body = is_whitelisted(request.path) and nativefs.read(self.path .. request.path)
 
                 self:send_response({
-                    code = body and 200 or 404,
-                    status = not body and "Not found" or nil,
-                    body = body or "Not found",
+                    code = not body and 404 or nil,
+                    status = not body and "Not Found" or nil,
+                    body = type(body) == "string" and body or "Not Found"
                 })
             end
         end
@@ -120,8 +124,8 @@ function TwitchAuth:get_token()
         if message.type == "error" then
             self:send_response({
                 code = 400,
-                status = "Bad request",
-                body = "Bad request",
+                status = "Bad Request",
+                body = "Bad Request",
             })
         end
     end

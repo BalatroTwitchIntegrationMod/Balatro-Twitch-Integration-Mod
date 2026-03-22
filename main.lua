@@ -27,6 +27,8 @@ local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID, TWITCH_CLIENT_SCOPE, mod_o
 local twitch_api = twitch.api:new(TWITCH_CLIENT_ID, mod_obj.config.token)
 local twitch_chat = twitch.chat:new()
 
+mod_obj.twitch_auth = twitch_auth
+
 local chat_commands = assert(SMODS.load_file("commands.lua"))()
 
 ---@alias ConnectionState "disconnected" | "authenticating" | "authenticated" | "connecting" | "connected"

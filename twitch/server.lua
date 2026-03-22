@@ -42,6 +42,7 @@ local _, listen_err = server:listen(8)
 
 if bind_err or listen_err then
     send_message({ type = "kill" })
+    server:close()
     return
 end
 
@@ -57,6 +58,12 @@ while true do
         end
 
         if message.type == "response" then
+            if not message.response.headers then
+                message.response.headers = {}
+            end
+            if not message.response.headers["Connection"] then
+                message.response.headers["Connection"] = "close"
+            end
             tx_buffer = utils.format_http_response(message.response)
         end
     end
@@ -73,6 +80,8 @@ while true do
     end
 
     if connection then
+        local close = false
+
         if tx_buffer then
             while #tx_buffer > 0 do
                 local bytes, tx_err, partial = connection:send(tx_buffer)
@@ -88,9 +97,7 @@ while true do
 
             tx_buffer = nil
 
-            connection:shutdown("both")
-            connection:close()
-            connection = nil
+            close = true
         else
             local data, rx_err, partial = connection:receive("*a")
 
@@ -103,9 +110,7 @@ while true do
                 rx_buffer = rx_buffer .. partial
                 parse = true
             elseif rx_err and rx_err ~= "timeout" then
-                connection:shutdown("both")
-                connection:close()
-                connection = nil
+                close = true
             end
 
             if parse then
@@ -119,6 +124,12 @@ while true do
                     send_message({ type = "error" })
                 end
             end
+        end
+
+        if close then
+            connection:shutdown("both")
+            connection:close()
+            connection = nil
         end
     end
 end

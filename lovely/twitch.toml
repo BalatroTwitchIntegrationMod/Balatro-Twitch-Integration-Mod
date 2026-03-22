@@ -22,3 +22,15 @@ name = "twitch.chat"
 [patches.module]
 source = "twitch/lib.lua"
 name = "twitch.lib"
+
+[[patches]]
+[patches.pattern]
+target = "main.lua"
+pattern = '''function love.quit()'''
+position = "after"
+payload = '''
+    if SMODS.Mods["twitchintegration"].twitch_auth then
+        SMODS.Mods["twitchintegration"].twitch_auth:abort_auth()
+    end
+'''
+match_indent = true
