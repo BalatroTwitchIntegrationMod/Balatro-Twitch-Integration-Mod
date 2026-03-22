@@ -1,6 +1,28 @@
 ---@class JimboChatter: Moveable
 JimboChatter = Moveable:extend()
 
+local utf8 = require("utf8")
+
+---@param text string
+---@return string
+local function to_valid_utf8(text)
+    local result = ""
+
+    while #text > 0 do
+        local _, e = utf8.len(text)
+
+        if e ~= nil then
+            result = result .. string.sub(text, 1, e - 1)
+            text = string.sub(text, e + 1)
+        else
+            result = result .. text
+            break
+        end
+    end
+
+    return result
+end
+
 ---@param args {x?: number, y?: number, w?: number, h?: number, speech_bubble_align?: string}
 function JimboChatter:init(args)
     Moveable.init(self, args.x or 1, args.y or 1, args.w or G.CARD_W * 1, args.h or G.CARD_H * 1)
@@ -41,37 +63,39 @@ function JimboChatter:say(text)
 
     self.talking = true
 
-    if self.children.speech_bubble then
-        self.children.speech_bubble:remove()
-    end
+    local max_width = 85
+
+    text = to_valid_utf8(text)
 
     G.localization.quips_parsed.ttv_chatter = {
         multi_line = true
     }
 
-    local max_width = 85
-
     while #text > 0 do
-        text = string.gsub(text, "%s+", " ")
+        text = string.gsub(text, "%s%s+", " ")
         text = string.gsub(text, "^%s", "")
         text = string.gsub(text, "%s$", "")
 
-        local sliced = string.sub(text, 1, max_width)
-        local broken, delimiter, next = string.match(sliced, "(.*)([%s%[%]\\|;:'\",<.>/%?])()")
+        local offset = utf8.offset(text, max_width + 1) or (#text + 1)
+        local sliced = string.sub(text, 1, offset - 1)
+        local broken, delimiter, next = string.match(sliced, "(.+)([%s%[%]\\|;:'\",<.>/%?])()")
 
-        if #sliced == max_width and broken and delimiter and next then
+        if broken and delimiter and next and utf8.len(sliced) == max_width then
             text = string.sub(text, next)
             table.insert(G.localization.quips_parsed.ttv_chatter, { {
                 strings = { broken .. string.gsub(delimiter, "%s", "") }, control = {}
             } })
         else
-            text = string.sub(text, max_width + 1)
+            text = string.sub(text, #sliced + 1)
             table.insert(G.localization.quips_parsed.ttv_chatter, { {
                 strings = { sliced }, control = {}
             } })
         end
     end
 
+    if self.children.speech_bubble then
+        self.children.speech_bubble:remove()
+    end
     self.children.speech_bubble = UIBox({
         definition = G.UIDEF.speech_bubble("ttv_chatter", { quip = true }),
         config = { align = self.config.speech_bubble_align, offset = { x = 0, y = 0 }, parent = self }
