@@ -22,7 +22,7 @@ SMODS.Blind {
     end,
     defeat = function(self)
         for _, joker in ipairs(G.jokers.cards) do
-            joker.debuff = false
+            SMODS.debuff_card(joker, false, "ttv")
         end
     end
 }
