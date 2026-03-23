@@ -6,9 +6,9 @@ local dns = require("socket.dns")
 ---@class WinSecureSocket: SecureSocket
 ---@field private handle ffi.cdata*
 ---@field private host string
----@field private rx {length: number, available: number, buffer: ffi.cdata*}
----@field private tx {length: number, buffer: ffi.cdata*}
----@field private sizes {header: number, trailer: number, message: number, buffers: number}
+---@field private rx { length: number, available: number, buffer: ffi.cdata* }
+---@field private tx { length: number, buffer: ffi.cdata* }
+---@field private sizes { header: number, trailer: number, message: number, buffers: number }
 local SecureSocket = {}
 
 SecureSocket.__index = SecureSocket

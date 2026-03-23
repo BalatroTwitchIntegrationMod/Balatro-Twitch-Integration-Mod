@@ -1,8 +1,8 @@
 ---@alias ServerMessage
----| {type: "kill"}
----| {type: "request", request: HttpRequest}
----| {type: "response", response: HttpResponse}
----| {type: "error"}
+---| { type: "kill" }
+---| { type: "request", request: HttpRequest }
+---| { type: "response", response: HttpResponse }
+---| { type: "error" }
 
 local channel, port = ...
 
@@ -10,9 +10,7 @@ local socket = require("socket")
 local utils = require("socket.utils")
 
 local timeout = 1 / 120
-local server = socket.tcp4()
-
----@cast server TCPSocketServer?
+local server = socket.tcp4() --[[@as TCPSocketServer?]]
 
 local connection = nil
 local rx_buffer = ""
