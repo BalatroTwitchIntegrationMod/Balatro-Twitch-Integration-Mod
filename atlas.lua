@@ -108,6 +108,16 @@ SMODS.Atlas({
     atlas_table = "ANIMATION_ATLAS"
 })
 
+SMODS.Atlas({
+    key = "template_bosses",
+    path = "template_bosses.png",
+    frames = 5,
+    fps = 10,
+    px = 34,
+    py = 34,
+    atlas_table = "ANIMATION_ATLAS"
+})
+
 local NFS = require("nativefs")
 to_big = to_big or function(a) return a end
 lenient_bignum = lenient_bignum or function(a) return a end
@@ -191,6 +201,7 @@ assert(SMODS.load_file("usebuttons.lua"))()
 assert(SMODS.load_file("colours.lua"))()
 assert(SMODS.load_file("shaders.lua"))()
 assert(SMODS.load_file("tags.lua"))()
+assert(SMODS.load_file("blinds.lua"))()
 load_jokers_folder()
 load_consumables_folder()
 load_editions_folder()

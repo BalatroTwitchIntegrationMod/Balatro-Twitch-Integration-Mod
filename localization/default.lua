@@ -30,13 +30,6 @@ return {
         suits_singular = {},
         tutorial = {},
         v_dictionary = {},
-        v_text = {
-            j_ttv_chatters = {
-                "Chat Joker"
-            },
-            j_ttv_copycat = {
-                "Copy Cat"
-            }
-        }
+        v_text = {}
     }
 }
