@@ -15,7 +15,7 @@ SMODS.Blind {
     mult = 2,
     pos = { x = 0, y = 0 },
     boss = { showdown = true },
-    boss_colour = HEX("ac3232"),
+    boss_colour = HEX('69359c'),
     calculate = function(self, blind, context)
         if context.setting_blind and to_big(blind.key) == to_big("stream_sniper") then
         end
