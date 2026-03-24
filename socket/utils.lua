@@ -1,14 +1,17 @@
+---@alias HttpHeaders table<string, string|number>
+---@alias HttpParams table<string, boolean|number|string|(boolean|number|string)[]>
+
 ---@class HttpPacket
 ---@field state? "empty" | "headers" | "body" | "chunked" | "trailer" | "done"
 ---@field done? boolean
----@field headers? table<string, string|number>
+---@field headers? HttpHeaders
 ---@field body? string
 ---@field remaining? number
 
 ---@class HttpRequest: HttpPacket
 ---@field method? string
 ---@field path? string
----@field params? table<string, boolean|number|string|(boolean|number|string)[]>
+---@field params? HttpParams
 
 ---@class HttpResponse: HttpPacket
 ---@field code? number
@@ -53,12 +56,13 @@ local escape_map = {
 local Utils = {}
 
 ---@param text string
+---@param separator string
 ---@return fun(): string?, string?
-function Utils.split_by_newline(text)
+function Utils.split_by(text, separator)
     local position = 0
 
     return function()
-        local nl_start, nl_end = string.find(text, "\r\n", position, true)
+        local nl_start, nl_end = string.find(text, separator, position, true)
 
         if not (nl_start and nl_end) then
             return nil, nil
@@ -71,34 +75,78 @@ function Utils.split_by_newline(text)
     end
 end
 
----@param text string
+---@param bytes string
 ---@return fun(): number?
-function Utils.string_bytes(text)
+function Utils.bytes(bytes)
     local position = 1
     return function()
-        if position > #text then
+        if position > #bytes then
             return nil
         end
-        local char = string.byte(text, position)
+        local char = string.byte(bytes, position)
         position = position + 1
         return char
     end
 end
 
----@param numbers table<number>|number
+---@param bytes string
+---@param size? number
+---@param endian? "big" | "little"
+---@return number[]
+function Utils.bytes_to_numbers(bytes, size, endian)
+    local result = {}
+
+    size = size or 1
+
+    for i = 1, #bytes, size do
+        local slice = string.sub(bytes, i, i + size)
+        slice = slice .. string.rep("\x00", size - #slice)
+
+        if endian == "little" then
+            slice = string.reverse(slice)
+        end
+
+        local v = 0
+
+        if size > 4 then
+            v = 0ULL
+        end
+
+        for _, n in ipairs({ string.byte(slice, 1, size) }) do
+            v = bit.bor(bit.lshift(v, 8), n)
+        end
+
+        table.insert(result, v)
+    end
+
+    return result
+end
+
+---@param numbers number|number[]
 ---@param size number
-function Utils.numbers_to_bytes(numbers, size)
+---@param endian? "big" | "little"
+---@return string
+function Utils.numbers_to_bytes(numbers, size, endian)
     local result = ""
 
-    local t = type(numbers) == "number" and { numbers } or numbers
+    local t = type(numbers) == "table" and numbers or { numbers }
 
-    ---@cast t table<number>
+    for _, v in pairs(t --[[@as number[]-]]) do
+        local p = ""
 
-    for _, v in pairs(t) do
-        for i = 0, (size - 1) do
-            local c = bit.band(bit.rshift(v, (size - i - 1) * 8), 0xFF)
-            result = result .. string.char(c)
+        for _ = 1, size do
+            local c = string.char(tonumber(bit.band(v, 0xFF)) or 0)
+
+            if endian == "little" then
+                p = p .. c
+            else
+                p = c .. p
+            end
+
+            v = bit.rshift(v, 8)
         end
+
+        result = result .. p
     end
 
     return result
@@ -108,53 +156,45 @@ end
 ---@return string
 function Utils.b64_encode(data)
     local encoded = ""
+    local phase = 0
+    local carry = 0
 
-    local iter = Utils.string_bytes(data)
-    local push = function(s)
-        encoded = encoded .. s
-    end
-
-    local exit = false
-    local phase = 1
-    local left = 0
-    local trailing = ""
-
-    while not exit do
-        local byte = iter()
-
-        if byte == nil then
-            if phase == 1 then
-                break
-            elseif phase == 2 then
-                trailing = "=="
-            elseif phase == 3 then
-                trailing = "="
+    local encode = function(byte, continue)
+        if phase == 0 then
+            if continue then
+                encoded = encoded .. b64_alphabet[bit.rshift(byte, 2)]
+                carry = bit.lshift(bit.band(byte, 0x03), 4)
             end
-
-            byte = 0
-            exit = true
         end
 
         if phase == 1 then
-            push(b64_alphabet[bit.rshift(byte, 2)])
-            left = bit.lshift(bit.band(byte, 0x03), 4)
-        elseif phase == 2 then
-            push(b64_alphabet[bit.bor(left, bit.rshift(byte, 4))])
-            left = bit.lshift(bit.band(byte, 0x0F), 2)
-        elseif phase == 3 then
-            push(b64_alphabet[bit.bor(left, bit.rshift(byte, 6))])
-            if not exit then
-                push(b64_alphabet[bit.band(byte, 0x3F)])
+            encoded = encoded .. b64_alphabet[bit.bor(carry, bit.rshift(byte, 4))]
+            carry = bit.lshift(bit.band(byte, 0x0F), 2)
+            if not continue then
+                encoded = encoded .. "=="
             end
         end
 
-        phase = phase + 1
-        if phase > 3 then
-            phase = 1
+        if phase == 2 then
+            encoded = encoded .. b64_alphabet[bit.bor(carry, bit.rshift(byte, 6))]
+            if continue then
+                encoded = encoded .. b64_alphabet[bit.band(byte, 0x3F)]
+            else
+                encoded = encoded .. "="
+            end
         end
     end
 
-    push(trailing)
+    for byte in Utils.bytes(data) do
+        encode(byte, true)
+
+        phase = phase + 1
+        if phase >= 3 then
+            phase = 0
+        end
+    end
+
+    encode(0, false)
 
     return encoded
 end
@@ -162,27 +202,11 @@ end
 ---@param data string
 ---@return string
 function Utils.sha1(data)
-    bits = #data * 8
+    local padding = math.fmod(#data + 1, 64)
+    local filler = string.rep("\x00", (padding <= 56) and (56 - padding) or (64 - padding + 56))
+    local length = Utils.numbers_to_bytes(#data * 8ULL, 8)
 
-    data = data .. "\x80"
-
-    local mod = math.fmod(#data, 64)
-
-    if mod < 56 then
-        data = data .. string.rep("\x00", 56 - mod)
-    elseif mod > 56 then
-        data = data .. string.rep("\x00", 64 - mod + 56)
-    end
-
-    data = data .. Utils.numbers_to_bytes({ 0, bits }, 4)
-
-    local get = function(i)
-        local value = 0
-        for byte in Utils.string_bytes(string.sub(data, i + 1, i + 4)) do
-            value = bit.bor(bit.lshift(value, 8), byte)
-        end
-        return value
-    end
+    data = data .. "\x80" .. filler .. length
 
     local h = {
         [0] = 0x67452301,
@@ -195,14 +219,10 @@ function Utils.sha1(data)
     local processed = 0
 
     while processed < #data do
-        local w = {}
+        local w = Utils.bytes_to_numbers(string.sub(data, processed + 1, processed + 64), 4)
 
-        for i = 0, 79 do
-            if i < 16 then
-                w[i] = get(processed + (i * 4))
-            else
-                w[i] = bit.rol(bit.bxor(w[i - 3], w[i - 8], w[i - 14], w[i - 16]), 1)
-            end
+        for i = 17, 80 do
+            w[i] = bit.rol(bit.bxor(w[i - 3], w[i - 8], w[i - 14], w[i - 16]), 1)
         end
 
         local a = h[0]
@@ -211,17 +231,17 @@ function Utils.sha1(data)
         local d = h[3]
         local e = h[4]
 
-        for i = 0, 79 do
+        for i = 1, 80 do
             local f = 0
             local k = 0
 
-            if i <= 19 then
+            if i <= 20 then
                 f = bit.bor(bit.band(b, c), bit.band(bit.bnot(b), d))
                 k = 0x5A827999
-            elseif i <= 39 then
+            elseif i <= 40 then
                 f = bit.bxor(b, c, d)
                 k = 0x6ED9EBA1
-            elseif i <= 59 then
+            elseif i <= 60 then
                 f = bit.bor(bit.band(b, c), bit.band(b, d), bit.band(c, d))
                 k = 0x8F1BBCDC
             else
@@ -272,26 +292,24 @@ function Utils.escape_url_param(value)
     return escaped_string
 end
 
----@param params table<string, boolean|number|string|(boolean|number|string)[]>
+---@param params HttpParams
 ---@return string
 function Utils.format_url_params(params)
-    local params_string = ""
+    local list = {}
 
     for key, value in pairs(params) do
-        if #params_string > 0 then
-            params_string = params_string .. "&"
-        end
         local escaped_key = Utils.escape_url_param(key)
-        if type(value) == "table" then
-            for _, v in ipairs(value) do
-                params_string = params_string .. escaped_key .. "=" .. Utils.escape_url_param(v)
-            end
-        else
-            params_string = params_string .. escaped_key .. "=" .. Utils.escape_url_param(value)
+
+        if type(value) ~= "table" then
+            value = { value }
+        end
+
+        for _, v in ipairs(value) do
+            table.insert(list, table.concat({ escaped_key, Utils.escape_url_param(v) }, "="))
         end
     end
 
-    return params_string
+    return table.concat(list, "&")
 end
 
 ---@param value string
@@ -305,7 +323,7 @@ function Utils.unescape_url_param(value)
 end
 
 ---@param params_string string
----@return table<string, boolean|number|string|(boolean|number|string)[]>
+---@return HttpParams
 function Utils.parse_url_params(params_string)
     local params = {}
 
@@ -374,10 +392,11 @@ function Utils.format_http_response(response)
     return data
 end
 
----@param packet HttpRequest|HttpResponse?
+---@generic T: HttpPacket
+---@param packet T?
 ---@param data string
 ---@param mode "request" | "response"
----@return HttpRequest|HttpResponse?, string, string?
+---@return T?, string, string?
 function Utils.parse_http_packet(packet, data, mode)
     local p = packet or {
         state = "empty",
@@ -390,7 +409,7 @@ function Utils.parse_http_packet(packet, data, mode)
     }
 
     if p.state == "empty" then
-        for line, rest in Utils.split_by_newline(data) do
+        for line, rest in Utils.split_by(data, "\r\n") do
             data = rest
 
             if mode == "request" then
@@ -425,7 +444,7 @@ function Utils.parse_http_packet(packet, data, mode)
     end
 
     if p.state == "headers" then
-        for line, rest in Utils.split_by_newline(data) do
+        for line, rest in Utils.split_by(data, "\r\n") do
             data = rest
 
             if line ~= "" then
@@ -512,7 +531,7 @@ function Utils.parse_http_packet(packet, data, mode)
     end
 
     if p.state == "trailer" then
-        for line, rest in Utils.split_by_newline(data) do
+        for line, rest in Utils.split_by(data, "\r\n") do
             data = rest
             if line == "" then
                 p.state = "done"
@@ -532,7 +551,6 @@ end
 ---@return HttpRequest?, string, string?
 function Utils.parse_http_request(request, data)
     local r, d, e = Utils.parse_http_packet(request, data, "request")
-    ---@cast r HttpRequest?
     return r, d, e
 end
 
@@ -541,7 +559,6 @@ end
 ---@return HttpResponse?, string, string?
 function Utils.parse_http_response(response, data)
     local r, d, e = Utils.parse_http_packet(response, data, "response")
-    ---@cast r HttpResponse?
     return r, d, e
 end
 

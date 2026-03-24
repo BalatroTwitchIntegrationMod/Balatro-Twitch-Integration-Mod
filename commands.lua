@@ -212,7 +212,7 @@ chat_commands.leveldown = function()
     for key, hand in pairs(G.GAME.hands) do
         if hand.level > 0 then
             triggered = true
-            level_up_hand(nil, key, true, -1)
+            level_up_hand(nil, key, false, -1)
         end
     end
     if triggered then

@@ -116,7 +116,7 @@ function TwitchAuth:get_token()
                 self:send_response({
                     code = not body and 404 or nil,
                     status = not body and "Not Found" or nil,
-                    body = type(body) == "string" and body or "Not Found"
+                    body = body --[[@as string?]] or "Not Found"
                 })
             end
         end
