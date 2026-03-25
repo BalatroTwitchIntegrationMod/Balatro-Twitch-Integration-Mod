@@ -3,7 +3,8 @@ SMODS.Blind {
     loc_txt = {
         ['name'] = 'Stream Sniper',
         ['text'] = {
-            'One Joker is disabled at random by Twitch viewers,',
+            'One Joker is disabled at random',
+            'by Twitch viewers,',
         },
         ['unlock'] = {
             'Unlocked by default.'
