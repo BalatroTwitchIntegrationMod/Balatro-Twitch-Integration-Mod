@@ -526,4 +526,27 @@ chat_commands.agga = function()
     mod.glitch = 30
 end
 
+---For BossBlind Sniper
+chat_commands.debuff = function(arg)
+local digit = string.match(arg, "^[0-9]$")
+if digit then
+    local i = tonumber(digit)
+    if not G.GAME.blind.disabled and G.GAME.blind and G.GAME.blind.in_blind and G.GAME.blind.config.blind.key == "bl_ttv_stream_sniper" then
+        if G.jokers and i > 0 and i <= #G.jokers.cards then
+            local card = G.jokers.cards[i]
+        for _, joker in ipairs(G.jokers.cards) do
+            joker.debuff = false
+        end
+            if SMODS.debuff_card(card, false, "ttv") then
+                    G.GAME.blind:wiggle()
+                    card:juice_up()
+                else
+                    G.GAME.blind:wiggle()
+                    SMODS.debuff_card(card, true, "ttv")
+                    card:juice_up()
+                end
+            end
+        end
+    end
+end
 return chat_commands

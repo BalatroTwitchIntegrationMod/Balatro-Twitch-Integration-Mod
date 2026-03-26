@@ -42,8 +42,7 @@ SMODS.Joker {
         if context.setting_blind and not context.blueprint then
             G.E_MANAGER:add_event(Event({
                 func = function()
-                    play_sound("ttv_dkbanana")
-
+                --Deleting this breaks everything for some reason ¯\_(ツ)_/¯
                     return true
                 end
             }))
@@ -64,6 +63,7 @@ SMODS.Joker {
                                 G.E_MANAGER:add_event(Event({
                                     func = function()
                                         joker:start_dissolve({G.C.RED}, nil, 1.6)
+                                        play_sound("ttv_dkbanana")
                                         return true
                                     end
                                 }))
