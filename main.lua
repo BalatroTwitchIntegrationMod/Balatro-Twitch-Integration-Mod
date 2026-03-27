@@ -455,3 +455,4 @@ SMODS.current_mod.menu_cards = function()
         remove_original = true
     }
 end
+
