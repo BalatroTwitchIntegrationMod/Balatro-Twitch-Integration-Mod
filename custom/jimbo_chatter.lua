@@ -33,7 +33,7 @@ function JimboChatter:init(args)
     self.removed = false
 
     self.config = {
-        colours = { G.ARGS.LOC_COLOURS.ttv_purple, G.C.WHITE, G.ARGS.LOC_COLOURS.ttv_purple2, G.C.BLACK },
+        colours = { G.ARGS.LOC_COLOURS.ttv_purple1, G.C.WHITE, G.ARGS.LOC_COLOURS.ttv_purple2, G.C.BLACK },
         speech_bubble_align = args.speech_bubble_align or "bm"
     }
 

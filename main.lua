@@ -3,46 +3,11 @@
 --- MOD_ID: TwitchIntergration
 --- MOD_AUTHOR: chowder
 
-assert(SMODS.load_file("atlas.lua"))()
-
 ---@class Mod
-local mod_obj = SMODS.current_mod
-mod_obj.flashlight_on = false
-mod_obj.viewer_count = 0
+---@field path string
+local mod = SMODS.current_mod
 
-G.alien_jumpscare_active = nil
-
-local TWITCH_CLIENT_ID = "iu1n0iv7lqs1g9bhoxa6z58bl91swl"
-local TWITCH_CLIENT_SCOPE = {
-    "channel:moderate",
-    "chat:edit",
-    "chat:read",
-    "moderator:manage:banned_users",
-    "user:read:chat",
-    "user:write:chat",
-}
-
-local twitch = require("twitch.lib")
-local twitch_auth = twitch.auth:new(TWITCH_CLIENT_ID, TWITCH_CLIENT_SCOPE, mod_obj.path)
-local twitch_api = twitch.api:new(TWITCH_CLIENT_ID, mod_obj.config.token)
-local twitch_chat = twitch.chat:new()
-
-mod_obj.twitch_auth = twitch_auth
-
-local chat_commands = assert(SMODS.load_file("commands.lua"))()
-
----@alias ConnectionState "disconnected" | "authenticating" | "authenticated" | "connecting" | "connected"
----@type ConnectionState
-local connection_state = mod_obj.config.token and "authenticated" or "disconnected"
-
----@alias ChatState "disconnected" | "connecting" | "joining" | "joined"
----@type ChatState
-local chat_state = "disconnected"
-
----@type GetUsersResponse?
-local connected_user = nil
-
-local log = function(message, level)
+function mod.log(message, level)
     local LOGGER = "TwitchIntegration"
     level = level or "info"
     if level == "debug" then
@@ -52,81 +17,97 @@ local log = function(message, level)
     end
 end
 
+---@alias TwitchConnectionState "disconnected" | "authenticating" | "authenticated" | "connecting" | "connected"
+
+local TWITCH_CLIENT_ID = "iu1n0iv7lqs1g9bhoxa6z58bl91swl"
+local TWITCH_CLIENT_SCOPE = {
+    "channel:moderate",
+    "moderator:manage:banned_users",
+    "user:read:chat",
+}
+
+local twitch_lib = require("twitch.lib")
+
+mod.twitch = {}
+
+mod.twitch.auth = twitch_lib.auth:new(TWITCH_CLIENT_ID, TWITCH_CLIENT_SCOPE, mod.path)
+mod.twitch.api = twitch_lib.api:new(TWITCH_CLIENT_ID, mod.config.token)
+mod.twitch.eventsub = twitch_lib.eventsub:new(mod.twitch.api)
+
+mod.twitch.state = mod.config.token and "authenticated" or "disconnected" ---@type TwitchConnectionState
+mod.twitch.user = nil ---@type GetUsersResponse?
+mod.twitch.viewer_count = 0
+
+---@type ChatCommandRunner
+local commands = assert(SMODS.load_file("commands.lua"))()
+
+assert(SMODS.load_file("atlas.lua"))()
+
 local function get_config_tab_parameters()
     local params = ({
-        disconnected = {"Disconnected", G.C.RED, "CONNECT", G.C.PURPLE},
-        authenticating = {"Authenticating...", G.C.BLUE, "CANCEL", G.C.RED},
-        authenticated = {"Authenticated", G.C.BLUE, "CANCEL", G.C.RED},
-        connecting = {"Connecting...", G.C.BLUE, "CANCEL", G.C.RED},
-        connected = {"Connected", G.C.GREEN, "DISCONNECT", G.C.BLUE}
-    })[connection_state]
-
-    local chat_params = ({
-        disconnected = {"Disconnected", G.C.RED},
-        connecting = {"Connecting...", G.C.BLUE},
-        joining = {"Joining...", G.C.BLUE},
-        joined = {"Joined", G.C.GREEN}
-    })[chat_state]
+        disconnected = { "Disconnected", G.C.RED, "CONNECT", G.C.PURPLE },
+        authenticating = { "Authenticating...", G.C.BLUE, "CANCEL", G.C.RED },
+        authenticated = { "Authenticated", G.C.BLUE, "CANCEL", G.C.RED },
+        connecting = { "Connecting...", G.C.BLUE, "CANCEL", G.C.RED },
+        connected = { "Connected", G.C.GREEN, "DISCONNECT", G.C.BLUE }
+    })[mod.twitch.state]
 
     return {
         status_text = params[1],
         status_color = params[2],
-        chat_text = chat_params[1],
-        chat_color = chat_params[2],
-        user_text = connected_user and connected_user.login or "none",
-        user_color = connected_user and G.C.PURPLE or G.C.GREY,
+        user_text = mod.twitch.user and mod.twitch.user.login or "none",
+        user_color = mod.twitch.user and G.C.PURPLE or G.C.GREY,
         button_text = params[3],
         button_color = params[4]
     }
 end
 
-mod_obj.config_tab = function()
+function mod.config_tab()
     local p = get_config_tab_parameters()
 
     return {
         n = G.UIT.ROOT,
-        config = {align = "cm", minw = 6, padding = 0.4, r = 0.1, emboss = 0.05, colour = G.C.BLACK},
-        nodes = {{
+        config = { align = "cm", minw = 6, padding = 0.4, r = 0.1, emboss = 0.05, colour = G.C.BLACK },
+        nodes = { {
             n = G.UIT.R,
-            config = {align = "cm"},
+            config = { align = "cm" },
             nodes = {
-                {n = G.UIT.T, config = {text = "Twitch API: ", scale = 0.4, colour = G.C.WHITE}},
-                {n = G.UIT.T, config = {text = p.status_text, scale = 0.4, colour = p.status_color, id = "ttv_connect_status"}}
+                { n = G.UIT.T, config = { text = "Twitch API: ", scale = 0.4, colour = G.C.WHITE } },
+                { n = G.UIT.T, config = { text = p.status_text, scale = 0.4, colour = p.status_color, id = "ttv_connect_status" } }
             }
         }, {
             n = G.UIT.R,
-            config = {align = "cm"},
+            config = { align = "cm" },
             nodes = {
-                {n = G.UIT.T, config = {text = "Twitch Chat: ", scale = 0.4, colour = G.C.WHITE}},
-                {n = G.UIT.T, config = {text = p.chat_text, scale = 0.4, colour = p.chat_color, id = "ttv_chat_status"}}
+                { n = G.UIT.T, config = { text = "Channel: ", scale = 0.4, colour = G.C.WHITE } },
+                { n = G.UIT.T, config = { text = p.user_text, scale = 0.4, colour = p.user_color, id = "ttv_user" } }
             }
         }, {
             n = G.UIT.R,
-            config = {align = "cm"},
+            config = { align = "cm" },
             nodes = {
-                {n = G.UIT.T, config = {text = "Channel: ", scale = 0.4, colour = G.C.WHITE}},
-                {n = G.UIT.T, config = {text = p.user_text, scale = 0.4, colour = p.user_color, id = "ttv_user"}}
+                { n = G.UIT.T, config = { text = "Cooldown (s): ", scale = 0.4, colour = G.C.WHITE } },
+                create_text_input({
+                    max_length = 3,
+                    w = 1,
+                    text = tostring(mod.config.cooldown_sec),
+                    ref_table = mod.config,
+                    ref_value = "cooldown_sec"
+                })
             }
         }, {
             n = G.UIT.R,
-            config = {align = "cm"},
-            nodes = {
-                {n = G.UIT.T, config = {text = "Cooldown (s): ", scale = 0.4, colour = G.C.WHITE}},
-                create_text_input({max_length = 3, w = 1, text = tostring(mod_obj.config.cooldown_sec), ref_table = mod_obj.config, ref_value = "cooldown_sec"})
-            }
-        }, {
-            n = G.UIT.R,
-            config = {align = "cm"},
-            nodes = {{
+            config = { align = "cm" },
+            nodes = { {
                 n = G.UIT.C,
-                config = {align = "cm", button = "twitch_connect_trigger", colour = p.button_color, r = 0.1, minw = 2.5, minh = 0.6, hover = true, shadow = true, id = "ttv_connect_button"},
-                nodes = {{n = G.UIT.T, config = {text = p.button_text, scale = 0.4, colour = G.C.WHITE, id = "ttv_connect_button_text"}}}
-            }}
+                config = { align = "cm", button = "twitch_connect_trigger", colour = p.button_color, r = 0.1, minw = 2.5, minh = 0.6, hover = true, shadow = true, id = "ttv_connect_button" },
+                nodes = { { n = G.UIT.T, config = { text = p.button_text, scale = 0.4, colour = G.C.WHITE, id = "ttv_connect_button_text" } } }
+            } }
         }, {
             n = G.UIT.R,
-            config = {align = "cm"},
-            nodes = {{n = G.UIT.T, config = {text = "Pressing CONNECT button will open a browser window", scale = 0.3, colour = G.C.GREY}}}
-        }}
+            config = { align = "cm" },
+            nodes = { { n = G.UIT.T, config = { text = "Pressing CONNECT button will open a browser window", scale = 0.3, colour = G.C.GREY } } }
+        } }
     }
 end
 
@@ -142,13 +123,6 @@ local function update_config_tab()
         connect_status.config.text = p.status_text
         connect_status.config.colour = p.status_color
         connect_status.UIBox:recalculate()
-    end
-
-    local chat_status = G.OVERLAY_MENU:get_UIE_by_ID("ttv_chat_status")
-    if chat_status then
-        chat_status.config.text = p.chat_text
-        chat_status.config.colour = p.chat_color
-        chat_status.UIBox:recalculate()
     end
 
     local user_text = G.OVERLAY_MENU:get_UIE_by_ID("ttv_user")
@@ -172,95 +146,62 @@ end
 
 ---@param token string?
 local function update_twitch_token(token)
-    twitch_api:set_token(token)
-    mod_obj.config.token = token
-    SMODS.save_mod_config(mod_obj)
+    mod.twitch.api:set_token(token)
+    mod.config.token = token
+    SMODS.save_mod_config(mod)
 end
 
----@param state ConnectionState
+---@param state TwitchConnectionState
 local function update_connection_state(state)
-    connection_state = state
-    update_config_tab()
-end
-
----@param state ChatState
-local function update_chat_state(state)
-    chat_state = state
+    mod.twitch.state = state
     update_config_tab()
 end
 
 ---@param e UIElement
 G.FUNCS.twitch_connect_trigger = function(e)
-    if mod_obj.config.token then
-        log("Disconnected from Twitch")
-        twitch_chat:disconnect()
-        connected_user = nil
+    if mod.config.token then
+        mod.log("Disconnected from Twitch")
+        mod.twitch.user = nil
+        mod.twitch.viewer_count = 0
+        mod.twitch.eventsub:disconnect()
         update_twitch_token()
         update_connection_state("disconnected")
-        mod_obj.viewer_count = 0
-    elseif twitch_auth:is_running() then
-        log("Aborted Twitch authentication")
-        twitch_auth:abort_auth()
+    elseif mod.twitch.auth:is_running() then
+        mod.log("Aborted Twitch authentication")
+        mod.twitch.auth:abort_auth()
     else
-        log("Waiting for token from browser...")
-        twitch_auth:start_auth()
+        mod.log("Waiting for token from browser...")
+        mod.twitch.auth:start_auth()
         update_connection_state("authenticating")
     end
 end
 
-local active_votes = {}
----@param card Card
----@param state CopycatVotingState
----@param ui table|UIBox
-function mod_obj:add_vote(card, state, ui)
-    active_votes[card] = {
-        card = card,
-        state = state,
-        ui = ui,
-        start = os.time()
-    }
-end
-
-local function update_votes()
-    for k, v in pairs(active_votes) do
-        local elapsed = os.difftime(os.time(), v.start)
-        v.state.time_left = ("%01d:%02d"):format(math.floor((30 - elapsed) / 60), (30 - elapsed) % 60)
-        if elapsed >= 30 then
-            local max = 1
-            for i = 2, #v.state.votes do if v.state.votes[i] > v.state.votes[max] then max = i end end
-            SMODS.destroy_cards({v.card})
-            if v.state.options[max] then SMODS.add_card(v.state.options[max]) end
-            active_votes[k] = nil
-        end
-    end
-end
-
 local function update_twitch_auth()
-    if connection_state == "authenticating" then
-        local token = twitch_auth:get_token()
+    if mod.twitch.state == "authenticating" then
+        local token = mod.twitch.auth:get_token()
         if token then
             update_twitch_token(token.value)
             if token.value then
-                log("Token acquired")
+                mod.log("Token acquired")
                 play_sound("polychrome1")
                 update_connection_state("authenticated")
             else
-                log("Failed to acquire token")
+                mod.log("Failed to acquire token")
                 play_sound("cancel", 0.8)
                 update_connection_state("disconnected")
             end
         end
     end
 
-    if connection_state == "authenticated" then
+    if mod.twitch.state == "authenticated" then
         update_connection_state("connecting")
-        twitch_api:get_users({}, function(response)
+        mod.twitch.api:get_users({}, function(response)
             if response and response[1] then
-                log("Fetched connected user info")
-                connected_user = response[1]
+                mod.log("Fetched connected user info")
+                mod.twitch.user = response[1]
                 update_connection_state("connected")
             else
-                log("Failed to fetch connected user info")
+                mod.log("Failed to fetch connected user info")
                 update_twitch_token()
                 update_connection_state("disconnected")
             end
@@ -268,132 +209,51 @@ local function update_twitch_auth()
     end
 end
 
----@param user_id string
----@param key string
-local function update_ban_jokers(user_id, key)
-    for _, joker in ipairs(SMODS.find_card(key)) do
-        joker.config.center:apply_ban(joker, user_id)
-    end
-end
-
----@param message IRCPrivmsg
-local function run_chat_command(message)
-    local command, arg = string.match(message.text, "^!(%w+)%s*(%S*)")
-    if command then
-        command = command:lower()
-        if chat_commands[command] then
-            for _, joker in ipairs(SMODS.find_card("j_ttv_mods")) do
-                log("Prevented command [" .. command .. "] by user [" .. message.user .. "] argument [" .. arg .. "]", "debug")
-                joker.config.center:decrease_protections(joker)
-                if connected_user and not message.is_broadcaster and not message.is_moderator then
-                    twitch_api:ban_user({
-                        broadcaster_id = connected_user.id,
-                        moderator_id = connected_user.id,
-                        user_id = message.user_id,
-                        duration = 60,
-                        reason = "Balatro Twitch Integration"
-                    })
-                end
-                return
-            end
-
-            local text = string.gsub(message.text, "^!" .. command .. "%s+", "")
-            log("Running command [" .. command .. "] by user [" .. message.user .. "] argument [" .. arg .. "]", "debug")
-            chat_commands[command](arg, message.user, text)
-        end
-    end
-end
-
-local function update_twitch_chat()
-    if twitch_chat.state == "disconnected" and connected_user then
-        log("Connecting to the Twitch chat...")
-        update_chat_state("connecting")
-        twitch_chat:connect(mod_obj.config.token, connected_user.login)
+local function update_twitch_eventsub()
+    if mod.twitch.eventsub.state == "disconnected" and mod.twitch.user then
+        mod.log("Connecting to the Twitch EventSub...")
+        mod.twitch.eventsub:connect()
     end
 
-    twitch_chat:process(function(event)
-        local type = event.type
-
-        if type == "disconnected" then
-            log("Disconnected from the Twitch chat")
-            update_chat_state("disconnected")
+    mod.twitch.eventsub:process(function(self, event)
+        if event.type == "disconnected" then
+            mod.log("Disconnected from the Twitch EventSub")
         end
 
-        if type == "connected" then
-            log("Connected to the Twitch chat")
-            update_chat_state("joining")
-            if connected_user then
-                twitch_chat:join(connected_user.login)
-            end
-        end
+        if event.type == "connected" and mod.twitch.user then
+            mod.log("Connected to the Twitch EventSub")
 
-        if type == "joined" then
-            log("Joined the [#" .. event.channel .. "] room")
-            update_chat_state("joined")
-            -- twitch_chat:send_message(event.channel, "[Balatro Twitch Integration] Successfully connected")
-        end
+            self:add("channel.chat.message", 1, {
+                broadcaster_user_id = mod.twitch.user.id,
+                user_id = mod.twitch.user.id
+            }, function(payload)
+                commands:message(payload)
+            end)
 
-        if type == "clear" then
-            if event.user_name then
-                if event.duration then
-                    log("Timed out user [" .. event.user_name .. "] for " .. event.duration .. " seconds", "debug")
-                else
-                    log("Permanently banned user [" .. event.user_name .. "]", "debug")
-                    update_ban_jokers(event.user_id, "j_ttv_thebanhammer")
-                end
-            else
-                log("Chat was cleared")
-            end
-        end
-
-        if type == "message" then
-            local message = event.message
-
-            log("[#" .. message.channel .. "] " .. message.display_name .. ": " .. message.text, "debug")
-
-            if string.lower(message.text) == "f" then
-                update_ban_jokers(message.user, "j_ttv_f")
-            end
-
-            local digit = tonumber(string.match(message.text, "[12345]"))
-            if digit then
-                for _, v in pairs(active_votes) do
-                    v.state.votes[digit] = (v.state.votes[digit] or 0) + 1
-                end
-            end
-
-            run_chat_command(message)
+            self:add("channel.ban", 1, {
+                broadcaster_user_id = mod.twitch.user.id,
+            }, function(payload)
+                commands:ban(payload)
+            end)
         end
     end)
 end
 
-local function update_viewers_jokers(viewer_count)
-    G.E_MANAGER:add_event(Event({
-        func = function()
-            local cards = SMODS.find_card("j_ttv_chatters")
-            for _, joker in ipairs(cards) do
-                joker.config.center:set_chips(joker, viewer_count)
-            end
-            return true
-        end
-    }))
-end
-
-local update_stream_info_counter = nil
-local function update_stream_info()
-    if connection_state ~= "connected" or not connected_user then
-        update_stream_info_counter = nil
+local update_stream_counter = nil
+local function update_twitch_stream_info()
+    if mod.twitch.state ~= "connected" or not mod.twitch.user then
+        update_stream_counter = nil
         return
     end
 
-    if update_stream_info_counter == nil or os.difftime(os.time(), update_stream_info_counter) >= 20 then
-        update_stream_info_counter = os.time()
+    if update_stream_counter == nil or os.difftime(os.time(), update_stream_counter) >= 20 then
+        update_stream_counter = os.time()
     else
         return
     end
 
-    twitch_api:get_streams({
-        user_id = connected_user.id
+    mod.twitch.api:get_streams({
+        user_id = mod.twitch.user.id
     }, function(data)
         local viewer_count = 0
 
@@ -401,9 +261,17 @@ local function update_stream_info()
             viewer_count = data[1].viewer_count
         end
 
-        mod_obj.viewer_count = viewer_count
+        mod.twitch.viewer_count = viewer_count
 
-        update_viewers_jokers(viewer_count)
+        G.E_MANAGER:add_event(Event({
+            func = function()
+                local cards = SMODS.find_card("j_ttv_chatters")
+                for _, joker in ipairs(cards) do
+                    joker.config.center:set_chips(joker, viewer_count)
+                end
+                return true
+            end
+        }))
     end)
 end
 
@@ -413,43 +281,11 @@ function Game:update(dt)
     game_update_ref(self, dt)
 
     update_twitch_auth()
-
-    update_twitch_chat()
-
-    update_stream_info()
-
-    update_votes()
-
-    if mod_obj.glitch then
-        mod_obj.glitch = mod_obj.glitch - dt
-        if mod_obj.glitch <= 0 then mod_obj.glitch = nil end
-    end
+    update_twitch_eventsub()
+    update_twitch_stream_info()
 end
 
-local game_draw_ref = Game.draw
----@diagnostic disable-next-line: duplicate-set-field
-function Game:draw()
-    game_draw_ref(self)
-
-    if G.alien_jumpscare_active then
-        local data = G.alien_jumpscare_active
-        if data.image then
-            love.graphics.push("all")
-            love.graphics.draw(
-                data.image,
-                data.x,
-                data.y,
-                0,
-                data.scale,
-                data.scale,
-                0, 0
-            )
-            love.graphics.pop()
-        end
-    end
-end
-
-SMODS.current_mod.menu_cards = function()
+function mod.menu_cards()
     return {
         key = "j_ttv_chatters",
         remove_original = true

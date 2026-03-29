@@ -36,15 +36,16 @@ SMODS.Joker {
     discovered = true,
     atlas = "CustomJokers",
     loc_vars = function(self, info_queue, card)
+        local chips = card.added_to_deck and card.ability.extra.chips or mod.twitch.viewer_count
         return {
             vars = {
                 card.ability.extra.scaling,
-                (card.added_to_deck and card.ability.extra.chips or mod.viewer_count) * card.ability.extra.scaling
+                chips * card.ability.extra.scaling
             }
         }
     end,
     add_to_deck = function(self, card, from_debuff)
-        card.ability.extra.chips = mod.viewer_count
+        card.ability.extra.chips = mod.twitch.viewer_count
     end,
     calculate = function(self, card, context)
         if context.cardarea == G.jokers and context.joker_main then

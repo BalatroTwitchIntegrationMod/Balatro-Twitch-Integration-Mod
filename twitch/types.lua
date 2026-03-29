@@ -17,6 +17,21 @@
 ---@field created_at string
 ---@field end_time string
 
+---@class CreateEventSubData: table
+---@field type string
+---@field version string
+---@field condition table<string, number|string|(number|string)[]>
+---@field transport { method: "webhook" | "websocket" | "conduit", callback?: string, secret?: string, session_id?: string, conduit_id?: string }
+
+---@class CreateEventSubResponse: table
+---@field id string
+---@field status "enabled" | "webhook_callback_verification_pending"
+---@field type string
+---@field version string
+---@field condition table<string, number|string|(number|string)[]>
+---@field created_at string
+---@field transport { method: "webhook" | "websocket" | "conduit", callback?: string, session_id?: string, connected_at?: string, conduit_id?: string }
+
 ---@class GetStreamsParams: table
 ---@field user_id? string|string[]
 ---@field user_login? string|string[]

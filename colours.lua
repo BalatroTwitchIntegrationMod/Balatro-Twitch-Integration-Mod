@@ -28,6 +28,7 @@ SMODS.Gradient {
 }
 
 loc_colour()
-G.ARGS.LOC_COLOURS.ttv_purple = HEX('69359c')
-G.ARGS.LOC_COLOURS.ttv_purple2 = HEX('a562cf')
+
+G.ARGS.LOC_COLOURS.ttv_purple1 = HEX('69359C')
+G.ARGS.LOC_COLOURS.ttv_purple2 = HEX('A562CF')
 G.ARGS.LOC_COLOURS.ttv_jackpot = HEX('D19431')
