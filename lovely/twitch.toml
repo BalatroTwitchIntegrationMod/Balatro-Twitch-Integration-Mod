@@ -15,8 +15,8 @@ name = "twitch.auth"
 
 [[patches]]
 [patches.module]
-source = "twitch/chat.lua"
-name = "twitch.chat"
+source = "twitch/eventsub.lua"
+name = "twitch.eventsub"
 
 [[patches]]
 [patches.module]
@@ -29,8 +29,8 @@ target = "main.lua"
 pattern = '''function love.quit()'''
 position = "after"
 payload = '''
-    if SMODS.Mods["twitchintegration"].twitch_auth then
-        SMODS.Mods["twitchintegration"].twitch_auth:abort_auth()
+    if SMODS.Mods.twitchintegration.twitch.auth then
+        SMODS.Mods.twitchintegration.twitch.auth:abort_auth()
     end
 '''
 match_indent = true
