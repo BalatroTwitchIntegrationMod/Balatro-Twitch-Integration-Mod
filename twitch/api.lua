@@ -6,7 +6,7 @@ local TwitchApi = {}
 ---@private
 TwitchApi.__index = TwitchApi
 
----@class Payload
+---@class TwitchApiPayload
 ---@field endpoint string
 ---@field method? string
 ---@field params? table<string, number|string|(number|string)[]>
@@ -17,7 +17,7 @@ local https = require("SMODS.https")
 local json = require("json")
 local utils = require("socket.utils")
 
----@param payload Payload
+---@param payload TwitchApiPayload
 ---@return string, table
 ---@private
 function TwitchApi:prepare_request_data(payload)
@@ -43,8 +43,8 @@ function TwitchApi:prepare_request_data(payload)
     return url, options
 end
 
----@param payload Payload
----@param callback? fun(response?: table)
+---@param payload TwitchApiPayload
+---@param callback? fun(response?: table, full: { code: number, body: string, headers: table })
 ---@async
 ---@private
 function TwitchApi:request(payload, callback)
@@ -52,7 +52,14 @@ function TwitchApi:request(payload, callback)
 
     return https.asyncRequest(url, options, function(code, body, headers)
         if callback then
-            callback(code == 200 and json.decode(body) or nil)
+            local success = (code >= 200) and (code < 300)
+            local is_json = string.find(headers["content-type"] or "", "application/json")
+            local response = is_json and json.decode(body) or body
+            callback(success and response or nil, {
+                code = code,
+                body = body,
+                headers = headers
+            })
         end
     end)
 end
@@ -107,6 +114,21 @@ function TwitchApi:get_users(params, callback)
     return self:request({
         endpoint = "users",
         params = params
+    }, function(response)
+        if callback then
+            callback(response and response.data)
+        end
+    end)
+end
+
+---@param data CreateEventSubData
+---@param callback? fun(response?: CreateEventSubResponse)
+---@async
+function TwitchApi:create_eventsub(data, callback)
+    return self:request({
+        endpoint = "eventsub/subscriptions",
+        method = "POST",
+        data = data
     }, function(response)
         if callback then
             callback(response and response.data)

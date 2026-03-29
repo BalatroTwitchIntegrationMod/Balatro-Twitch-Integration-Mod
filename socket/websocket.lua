@@ -164,7 +164,7 @@ function SecureWebSocket:close(code, reason)
     self.event_queued = { type = "disconnected" }
 end
 
----@param event fun(event: WebSocketEvent)
+---@param event fun(event: WebSocketEvent): boolean?
 function SecureWebSocket:process(event)
     if self.state == "connecting" then
         local ready, err = self.client:connect()
@@ -249,22 +249,24 @@ function SecureWebSocket:process(event)
                         self.buffer = self.buffer .. payload
 
                         if self.rx.fin then
-                            event({
+                            local exit = event({
                                 type = "message",
                                 format = self.rx.format,
                                 payload = self.buffer,
                             })
                             self.buffer = ""
+                            if exit then
+                                break
+                            end
                         end
                     elseif self.rx.opcode == self.OPCODE.PING then
                         if self:send(self.OPCODE.PONG, payload) then
                             self:close()
                         end
                     elseif self.rx.opcode == self.OPCODE.PONG then
-                        event({
-                            type = "pong",
-                            payload = payload,
-                        })
+                        if event({ type = "pong", payload = payload }) then
+                            break
+                        end
                     elseif self.rx.opcode == self.OPCODE.CLOSE then
                         local code = self.STATUS.NORMAL_CLOSURE
                         local reason = "normal closure"
