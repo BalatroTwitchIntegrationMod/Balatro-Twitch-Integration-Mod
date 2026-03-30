@@ -28,7 +28,7 @@ SMODS.Joker {
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = 'CustomJokers',
+    atlas = 'JokerSet1',
 
     set_ability = function(self, card, initial)
     end,

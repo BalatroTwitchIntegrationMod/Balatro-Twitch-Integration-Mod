@@ -34,7 +34,7 @@ SMODS.Joker {
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = "CustomJokers",
+    atlas = "JokerSet1",
     loc_vars = function(self, info_queue, card)
         local chips = card.added_to_deck and card.ability.extra.chips or mod.twitch.viewer_count
         return {

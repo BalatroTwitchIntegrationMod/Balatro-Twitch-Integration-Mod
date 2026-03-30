@@ -74,7 +74,7 @@ SMODS.Joker {
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = "CustomJokers",
+    atlas = "JokerSet1",
     add_to_deck = function(self, card, from_debuff)
         local voting = {
             user_ids = {},

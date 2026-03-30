@@ -24,8 +24,8 @@ SMODS.Atlas({
 })
 
 SMODS.Atlas({
-    key = "CustomJokers",
-    path = "CustomJokers.png",
+    key = "JokerSet1",
+    path = "JokerSet1.png",
     px = 71,
     py = 95,
     atlas_table = "ASSET_ATLAS"
@@ -113,6 +113,16 @@ SMODS.Atlas({
     path = "template_bosses.png",
     frames = 5,
     fps = 10,
+    px = 34,
+    py = 34,
+    atlas_table = "ANIMATION_ATLAS"
+})
+
+SMODS.Atlas({
+    key = "me",
+    path = "blind1.png",
+    frames = 3,
+    fps = 1,
     px = 34,
     py = 34,
     atlas_table = "ANIMATION_ATLAS"

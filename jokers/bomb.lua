@@ -98,7 +98,7 @@ SMODS.Joker { --C4
     perishable_compat = false,
     unlocked = true,
     discovered = true,
-    atlas = 'CustomJokers',
+    atlas = 'JokerSet1',
     in_pool = function() return false end,
 
     set_ability = function(self, card, initial)
