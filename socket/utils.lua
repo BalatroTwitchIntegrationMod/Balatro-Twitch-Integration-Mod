@@ -131,7 +131,7 @@ function Utils.numbers_to_bytes(numbers, size, endian)
         local p = ""
 
         for _ = 1, size do
-            local c = string.char(bit.band(v, 0xFF) or 0)
+            local c = string.char(bit.band(v, 0xFF))
 
             if endian == "little" then
                 p = p .. c

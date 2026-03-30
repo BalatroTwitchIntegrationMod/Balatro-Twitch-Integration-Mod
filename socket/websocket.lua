@@ -316,7 +316,7 @@ function SecureWebSocket:send(opcode, payload)
         data = data .. utils.numbers_to_bytes(#payload, 2)
     elseif length == 127 then
         if #payload > 0xFFFFFFFFULL then
-            return "error" -- Data over (4 GiB - 1) byte is not supported
+            return "error" -- Data over (4 GiB - 1 byte) is not supported
         end
         data = data .. utils.numbers_to_bytes({ 0, #payload }, 4)
     end

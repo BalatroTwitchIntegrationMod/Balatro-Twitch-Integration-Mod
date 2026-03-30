@@ -2,8 +2,8 @@
 local mod = SMODS.current_mod
 
 mod.commands.__default__ = {
-    no_cooldown = true,
     unprotected = true,
+    no_cooldown = true,
     exec = function(params)
         if string.lower(params.text) == "f" then
             for _, joker in ipairs(SMODS.find_card("j_ttv_f")) do

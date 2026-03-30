@@ -39,9 +39,14 @@ SMODS.ScreenShader {
     path = "flashlight.fs",
     send_vars = function()
         local mx, my = love.mouse.getPosition()
+        local w, h = love.graphics.getDimensions()
+        local s = (w > h) and h or w
         return {
-            center_pos = { mx, my },
-            dist = 300
+            center_pos = {
+                love.window.toPixels(mx),
+                love.window.toPixels(my),
+            },
+            dist = love.window.toPixels(s * 0.2)
         }
     end,
     should_apply = function()
