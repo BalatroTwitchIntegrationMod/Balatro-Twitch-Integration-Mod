@@ -53,7 +53,8 @@ function TwitchApi:request(payload, callback)
     return https.asyncRequest(url, options, function(code, body, headers)
         if callback then
             local success = (code >= 200) and (code < 300)
-            local is_json = string.find(headers["content-type"] or "", "application/json")
+            local content_type = headers["Content-Type"] or headers["content-type"] or ""
+            local is_json = string.find(content_type, "application/json")
             local response = is_json and json.decode(body) or body
             callback(success and response or nil, {
                 code = code,
