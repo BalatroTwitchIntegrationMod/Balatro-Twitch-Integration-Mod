@@ -10,7 +10,7 @@ SMODS.Blind {
             'Unlocked by default.'
         }
     },
-    atlas = 'template_bosses',
+    atlas = 'stream_sniper',
     discovered = true,
     dollars = 8,
     mult = 2,
