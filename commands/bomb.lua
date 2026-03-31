@@ -20,7 +20,7 @@ mod.commands.bomb = {
     exec = function(params)
         local card = SMODS.add_card({ key = "j_ttv_bomb", no_edition = true })
 
-        card.ability.extra.number = tonumber(params.arg) or math.random(0, 9999)
+        card.ability.extra.code_text = params.arg
 
         attention_text({
             text = params.message.user_name .. " planted a bomb!",
