@@ -19,5 +19,9 @@ mod.commands.__default__ = {
             end
             return
         end
+
+        if G.GAME and G.GAME.blind and G.GAME.blind.config and G.GAME.blind.config.blind and G.GAME.blind.config.blind.run_command then
+            G.GAME.blind.config.blind:run_command(G.GAME.blind, params.text)
+        end
     end
 }
