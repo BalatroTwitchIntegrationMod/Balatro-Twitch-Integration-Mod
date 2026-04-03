@@ -1,24 +1,15 @@
 ---@class Mod
 local mod = SMODS.current_mod
 
-local agga_glitch = false
+local agga_countdown = 0
 
 mod.commands.agga = {
     can_exec = function(params)
-        return not agga_glitch
+        print(agga_countdown == 0)
+        return agga_countdown == 0
     end,
     exec = function(params)
-        agga_glitch = true
-
-        G.E_MANAGER:add_event(Event({
-            trigger = "after",
-            blocking = false,
-            delay = G.SPEEDFACTOR * (24.5),
-            func = function()
-                agga_glitch = false
-                return true
-            end
-        }))
+        agga_countdown = 30
     end
 }
 
@@ -31,6 +22,14 @@ SMODS.ScreenShader {
         }
     end,
     should_apply = function()
-        return agga_glitch
+        return agga_countdown > 0
     end
 }
+
+local game_update_ref = Game.update
+---@diagnostic disable-next-line: duplicate-set-field
+function Game:update(dt)
+    game_update_ref(self, dt)
+
+    agga_countdown = math.max(agga_countdown - dt, 0)
+end

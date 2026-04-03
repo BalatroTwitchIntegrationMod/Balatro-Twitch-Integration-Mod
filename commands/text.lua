@@ -11,11 +11,7 @@ mod.commands.text = {
     unprotected = true,
     no_cooldown = true,
     can_exec = function(params)
-        if jimbo_chatter and not jimbo_chatter.removed then
-            return false
-        end
-
-        return true
+        return not (jimbo_chatter and jimbo_chatter.talking)
     end,
     exec = function(params)
         local config = G.STAGE == G.STAGES.MAIN_MENU and {
@@ -23,6 +19,10 @@ mod.commands.text = {
         } or {
             x = 5, y = 3.5, speech_bubble_align = "cr"
         }
+
+        if jimbo_chatter then
+            jimbo_chatter:remove()
+        end
 
         jimbo_chatter = JimboChatter(config)
 

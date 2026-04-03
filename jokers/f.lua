@@ -14,9 +14,7 @@ SMODS.Joker {
             "unique {C:tarot}chat member{} {C:attention}timed out{} typing {C:attention}F{}.",
             "{C:inactive}(Currently{} {C:red}+#1#{} {C:inactive}Mult){}"
         },
-        unlock = {
-            "Unlocked by default."
-        }
+        unlock = { "Unlocked by default." }
     },
     pos = {
         x = 0,
@@ -34,9 +32,11 @@ SMODS.Joker {
     unlocked = true,
     discovered = true,
     atlas = "JokerSet1",
+
     loc_vars = function(self, info_queue, card)
-        return {vars = {card.ability.extra.mult}}
+        return { vars = { card.ability.extra.mult } }
     end,
+
     calculate = function(self, card, context)
         if context.cardarea == G.jokers and context.joker_main then
             return {
@@ -44,6 +44,7 @@ SMODS.Joker {
             }
         end
     end,
+
     apply_ban = function(self, card, user_id)
         if not card.ability.extra.user_ids[user_id] then
             card.ability.extra.user_ids[user_id] = true

@@ -1,14 +1,12 @@
 ---@class Mod
 local mod = SMODS.current_mod
 
-local alien_data = nil
+local alien_countdown = 0
+local alien_data = {}
 
 mod.commands.alien = {
     can_exec = function(params)
-        if alien_data then
-            return false
-        end
-        return true
+        return alien_countdown == 0
     end,
     exec = function(params)
         local atlas_data = G.ASSET_ATLAS["ttv_alien_overlay"]
@@ -29,30 +27,30 @@ mod.commands.alien = {
         local random_x = math.random() * (screen_w - atlas_data.px * scale_factor)
         local random_y = math.random() * (screen_h - target_h)
 
+        alien_countdown = 5
         alien_data = {
             image = atlas_data.image,
             x = random_x,
             y = random_y,
             scale = scale_factor
         }
-
-        G.E_MANAGER:add_event(Event({
-            trigger = "after",
-            delay = 5,
-            func = function()
-                alien_data = nil
-                return true
-            end
-        }))
     end
 }
+
+local game_update_ref = Game.update
+---@diagnostic disable-next-line: duplicate-set-field
+function Game:update(dt)
+    game_update_ref(self, dt)
+
+    alien_countdown = math.max(alien_countdown - dt, 0)
+end
 
 local game_draw_ref = Game.draw
 ---@diagnostic disable-next-line: duplicate-set-field
 function Game:draw()
     game_draw_ref(self)
 
-    if alien_data then
+    if alien_countdown > 0 then
         if alien_data.image then
             love.graphics.push("all")
             love.graphics.draw(

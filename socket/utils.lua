@@ -55,6 +55,18 @@ local escape_map = {
 
 local Utils = {}
 
+---@param t table<string, any>
+---@return table<string, any>
+function Utils.keys_to_lower(t)
+    local r = {}
+
+    for k, v in pairs(t) do
+        r[string.lower(k)] = v
+    end
+
+    return r
+end
+
 ---@param text string
 ---@param separator string
 ---@return fun(): string?, string?

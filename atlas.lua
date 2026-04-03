@@ -216,7 +216,6 @@ end
 
 load_boosters_file()
 assert(SMODS.load_file("sounds.lua"))()
-assert(SMODS.load_file("custom/defuse_buttons.lua"))()
 assert(SMODS.load_file("colours.lua"))()
 assert(SMODS.load_file("tags.lua"))()
 assert(SMODS.load_file("blinds.lua"))()

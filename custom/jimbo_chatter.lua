@@ -30,7 +30,6 @@ function JimboChatter:init(args)
     self.children = {}
 
     self.talking = false
-    self.removed = false
 
     self.config = {
         colours = { G.ARGS.LOC_COLOURS.ttv_purple1, G.C.WHITE, G.ARGS.LOC_COLOURS.ttv_purple2, G.C.BLACK },
@@ -57,7 +56,7 @@ function JimboChatter:init(args)
 end
 
 function JimboChatter:say(text)
-    if self.talking or self.removed then
+    if self.talking then
         return
     end
 
@@ -138,7 +137,7 @@ function JimboChatter:say(text)
         blockable = false,
         delay = G.SPEEDFACTOR * 0.8,
         trigger = "after",
-        func = function(n)
+        func = function()
             if self.children.speech_bubble then
                 self.children.speech_bubble.states.visible = true
                 play_sound("voice" .. math.random(1, 11), G.SPEEDFACTOR * (math.random() * 0.2 + 1), 0.5)
@@ -155,7 +154,7 @@ function JimboChatter:say(text)
         blockable = false,
         delay = G.SPEEDFACTOR * 4.8,
         trigger = "after",
-        func = function(n)
+        func = function()
             self:hide()
             return true
         end
@@ -163,7 +162,7 @@ function JimboChatter:say(text)
 end
 
 function JimboChatter:hide()
-    if not self.talking or self.removed then
+    if not self.talking then
         return
     end
 
@@ -184,9 +183,8 @@ function JimboChatter:hide()
         blockable = false,
         delay = G.SPEEDFACTOR * 0.8,
         trigger = "after",
-        func = function(n)
+        func = function()
             self.talking = false
-            self:remove()
             return true
         end
     }))
@@ -211,12 +209,7 @@ function JimboChatter:draw()
 end
 
 function JimboChatter:remove()
-    if self.removed then
-        return
-    end
-
-    self.removed = true
-
+    self.talking = false
     remove_all(self.children)
 
     for k, v in pairs(G.I.CARD) do

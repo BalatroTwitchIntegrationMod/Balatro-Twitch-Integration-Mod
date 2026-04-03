@@ -1,14 +1,14 @@
 ---@class Mod
 local mod = SMODS.current_mod
 
-local flashlight_on = false
+local blind_countdown = 0
 
 mod.commands.blind = {
     can_exec = function(params)
-        return not flashlight_on
+        return blind_countdown == 0
     end,
     exec = function(params)
-        flashlight_on = true
+        blind_countdown = 30
 
         attention_text({
             colour = G.C.GREY,
@@ -20,17 +20,6 @@ mod.commands.blind = {
         })
 
         play_sound("ttv_flashlight")
-
-        G.E_MANAGER:add_event(Event({
-            trigger = "after",
-            blocking = false,
-            delay = G.SPEEDFACTOR * (24.5),
-            func = function()
-                flashlight_on = false
-                play_sound("ttv_flashlight")
-                return true
-            end
-        }))
     end
 }
 
@@ -50,6 +39,19 @@ SMODS.ScreenShader {
         }
     end,
     should_apply = function()
-        return flashlight_on
+        return blind_countdown > 0
     end
 }
+
+local game_update_ref = Game.update
+---@diagnostic disable-next-line: duplicate-set-field
+function Game:update(dt)
+    game_update_ref(self, dt)
+
+    prev_blind_countdown = blind_countdown
+    blind_countdown = math.max(blind_countdown - dt, 0)
+
+    if prev_blind_countdown > 0 and blind_countdown == 0 then
+        play_sound("ttv_flashlight")
+    end
+end
