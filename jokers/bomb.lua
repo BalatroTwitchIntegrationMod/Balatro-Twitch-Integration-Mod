@@ -70,6 +70,7 @@ SMODS.Joker { -- C4
     config = {
         extra = {
             code_text = "4176",
+            user_name = "haha",
             eternal = false,
             countdown = 60,
         }
@@ -78,7 +79,8 @@ SMODS.Joker { -- C4
         name = "C4",
         text = {
             "{C:dark_edition,E:1,s:2}DEFUSE THE BOMB OR LOSE!{}",
-            "{C:inactive}{C:red,E:2}Self-destructs{} when timer runs out{}"
+            "{C:inactive}{C:red,E:2}Self-destructs{} when timer runs out{}",
+            "4 digit code has been set by {C:purple}#1#{} in chat"
         },
         unlock = { "Unlocked by default." }
     },
@@ -98,6 +100,10 @@ SMODS.Joker { -- C4
     unlocked = true,
     discovered = true,
     atlas = "JokerSet1",
+
+    loc_vars = function(self, info_queue, card)
+        return { vars = { card.ability.extra.user_name } }
+    end,
 
     in_pool = function()
         return false
