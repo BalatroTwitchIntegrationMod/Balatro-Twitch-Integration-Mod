@@ -13,7 +13,7 @@ SMODS.Blind {
     dollars = 5,
     mult = 0.1,
     pos = { x = 0, y = 0 },
-    boss = { showdown = false },
+    boss = { min = 1, max = 10 },
     boss_colour = HEX("69359c"),
 
     run_command = function(self, blind, text)
