@@ -17,7 +17,7 @@ SMODS.Blind {
     boss_colour = HEX("69359c"),
 
     run_command = function(self, blind, text)
-        local cmd, card, action = string.match(text, "^([cdhjps])([0-9]*)([rsu]?)$")
+        local cmd, card, action = string.match(text, "^([cdhjps])([0-9]*)([rsuo]?)$")
 
         card = tonumber(card)
 
@@ -52,7 +52,7 @@ SMODS.Blind {
                 elseif cmd == "s" then
                     if action == "r" then
                         G.FUNCS.sort_hand_value({})
-                    elseif action == "s" then
+                    elseif action == "o" then
                         G.FUNCS.sort_hand_suit({})
                     end
                 end
