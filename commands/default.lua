@@ -20,8 +20,8 @@ mod.commands.__default__ = {
             return
         end
 
-        if G.GAME.blind and G.GAME.blind.config.blind and G.GAME.blind.config.blind.run_command then
-            G.GAME.blind.config.blind:run_command(G.GAME.blind, params.text)
+        if G.GAME.blind and G.GAME.blind.config.blind and G.GAME.blind.config.blind.add_vote then
+            G.GAME.blind.config.blind:add_vote(G.GAME.blind, params.text, params.message.user_id)
         end
     end
 }
