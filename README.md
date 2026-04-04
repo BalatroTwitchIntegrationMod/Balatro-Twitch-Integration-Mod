@@ -2,7 +2,7 @@
  A Work In Progress Twitch Integration Mod for [Balatro](https://store.steampowered.com/app/2379780/Balatro/)
 <img width="666" height="432" alt="balatro2" src="https://github.com/user-attachments/assets/f32126e3-5def-4d9a-ac9f-d5d34e8d1a22" />
 
-Includes 17 jokers as well as the commands listed below
+Includes 17 jokers, 2 Boss blinds as well as the commands listed below.
 
 # Commands
 * !agga (Creates a glitchy effect for 30 seconds.)
@@ -30,6 +30,19 @@ Includes 17 jokers as well as the commands listed below
 * !spectral (Give a random Spectral)
 * !tarot (Give a random Tarot, Planet or Spectral)
 * !text (Write Funny Text On screen) (A command only available to Mods & Vips)
+
+
+# Boss "Twitch Plays Balatro" Commands
+* p (play hand)
+* d (discard hand)
+* so (suit order)
+* sr (sort rank)
+* j# (click joker)
+* j#s (sell joker)
+* c# (click consumable)
+* c#u (use consumable)
+* c#s (sell consumable)
+* h# (click playing card)
 
 #
 (more to come and possible for some to be removed or reworked)
