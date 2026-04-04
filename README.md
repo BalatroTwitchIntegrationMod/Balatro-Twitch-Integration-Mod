@@ -4,6 +4,8 @@
 
 Includes 17 jokers, 2 Boss blinds as well as the commands listed below.
 
+(#) = location of card being selected
+
 # Commands
 * !agga (Creates a glitchy effect for 30 seconds.)
 * !alien (Alien Jump Scare)
@@ -12,7 +14,6 @@ Includes 17 jokers, 2 Boss blinds as well as the commands listed below.
 * !blind (Restricts the view with a little light.)
 * !blueprint (Spawn a blueprint)
 * !bomb #### (Spawn a bomb with the jokers for the player to defuse or lose the run)
-* !debuff
 * !destroycard (Remove a random card from the players hand)
 * !destroyjkr (Destroys a random joker)
 * !enhance (Give a Random Enhancement to all current cards in hand)
@@ -43,6 +44,9 @@ Includes 17 jokers, 2 Boss blinds as well as the commands listed below.
 * c#u (use consumable)
 * c#s (sell consumable)
 * h# (click playing card)
+
+# Boss "Stream Sniper" Commands
+* !debuff #
 
 #
 (more to come and possible for some to be removed or reworked)
