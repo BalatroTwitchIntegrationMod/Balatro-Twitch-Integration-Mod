@@ -2,6 +2,7 @@
 local mod = SMODS.current_mod
 
 mod.commands.debuff = {
+    no_cooldown = true,
     can_exec = function(params)
         if G.GAME.blind.disabled then
             return false
