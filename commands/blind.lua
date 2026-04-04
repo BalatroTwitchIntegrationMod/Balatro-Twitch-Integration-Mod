@@ -23,6 +23,15 @@ mod.commands.blind = {
     end
 }
 
+mod.hook:add(function(dt)
+    local prev_blind_countdown = blind_countdown
+    blind_countdown = math.max(blind_countdown - dt, 0)
+
+    if prev_blind_countdown > 0 and blind_countdown == 0 then
+        play_sound("ttv_flashlight")
+    end
+end)
+
 SMODS.ScreenShader {
     key = "flashlight_screen_shader",
     path = "flashlight.fs",
@@ -42,16 +51,3 @@ SMODS.ScreenShader {
         return blind_countdown > 0
     end
 }
-
-local game_update_ref = Game.update
----@diagnostic disable-next-line: duplicate-set-field
-function Game:update(dt)
-    game_update_ref(self, dt)
-
-    prev_blind_countdown = blind_countdown
-    blind_countdown = math.max(blind_countdown - dt, 0)
-
-    if prev_blind_countdown > 0 and blind_countdown == 0 then
-        play_sound("ttv_flashlight")
-    end
-end

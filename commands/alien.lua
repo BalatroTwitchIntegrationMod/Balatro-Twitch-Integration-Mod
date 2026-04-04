@@ -37,19 +37,11 @@ mod.commands.alien = {
     end
 }
 
-local game_update_ref = Game.update
----@diagnostic disable-next-line: duplicate-set-field
-function Game:update(dt)
-    game_update_ref(self, dt)
-
+mod.hook:add(function(dt)
     alien_countdown = math.max(alien_countdown - dt, 0)
-end
+end, "update")
 
-local game_draw_ref = Game.draw
----@diagnostic disable-next-line: duplicate-set-field
-function Game:draw()
-    game_draw_ref(self)
-
+mod.hook:add(function()
     if alien_countdown > 0 then
         if alien_data.image then
             love.graphics.push("all")
@@ -66,4 +58,4 @@ function Game:draw()
             love.graphics.pop()
         end
     end
-end
+end, "draw")
