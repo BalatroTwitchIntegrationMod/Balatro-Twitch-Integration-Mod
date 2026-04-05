@@ -1,7 +1,7 @@
 ---@class Mod
 local mod = SMODS.current_mod
 
-local action_countdown = 0
+local action_countdown = 3
 local chat_user_ids = {} ---@type { [string]: boolean }
 local chat_votes = {} ---@type { [string]: { key: string, params: string[], count: number } }
 
@@ -117,6 +117,39 @@ mod.hook:add(function(dt)
     end
 end)
 
+---@param state boolean
+local function apply_control_state(state)
+    local areas = { G.jokers, G.consumeables, G.hand }
+
+    for _, area in ipairs(areas) do
+        if area then
+            for _, card in ipairs(area.cards) do
+                card.states.collide.can = state
+                if card.children and card.children.use_button then
+                    card.children.use_button.states.collide.can = state
+                end
+            end
+        end
+    end
+end
+
+mod.hook:add(function(dt)
+    if not (G.GAME and G.GAME.blind and G.GAME.blind.config.blind.key == "bl_ttv_me") then
+        return
+    end
+
+    local config = G.GAME.blind.effect
+
+    if config.take_control_away == true then
+        apply_control_state(false)
+    end
+
+    if config.take_control_away == false then
+        config.take_control_away = nil
+        apply_control_state(true)
+    end
+end)
+
 SMODS.Blind {
     key = "me",
     loc_txt = {
@@ -133,15 +166,27 @@ SMODS.Blind {
     mult = 0.5,
     pos = { x = 0, y = 0 },
     boss = { min = 1, max = 10 },
-    boss_colour = HEX("69359c"),
+    boss_colour = HEX("69359C"),
+    config = {
+        take_control_away = nil
+    },
 
     set_blind = function(self)
+        G.GAME.blind.effect.take_control_away = true
         action_countdown = 3
         chat_user_ids = {}
         chat_votes = {}
     end,
 
-    add_vote = function(self, blind, text, user_id)
+    defeat = function(self)
+        G.GAME.blind.effect.take_control_away = false
+    end,
+
+    disable = function(self)
+        G.GAME.blind.effect.take_control_away = false
+    end,
+
+    add_vote = function(self, text, user_id)
         if chat_user_ids[user_id] then
             return
         end
@@ -158,7 +203,7 @@ SMODS.Blind {
                     chat_votes[text] = { key = key, params = params, count = 1 }
                 end
 
-                return
+                break
             end
         end
     end
