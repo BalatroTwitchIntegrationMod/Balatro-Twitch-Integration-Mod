@@ -1,7 +1,7 @@
 ---@class Mod
 local mod = SMODS.current_mod
 
-local action_countdown = 3
+local action_countdown = 0
 local chat_user_ids = {} ---@type { [string]: boolean }
 local chat_votes = {} ---@type { [string]: { key: string, params: string[], count: number } }
 
@@ -55,7 +55,7 @@ local ACTIONS = {
             if option == "" then
                 joker:click()
             elseif option == "s" and joker:can_sell_card() then
-                joker:sell_card()
+                G.FUNCS.sell_card({ config = { ref_table = joker } })
             end
         end
     },
@@ -70,17 +70,28 @@ local ACTIONS = {
             if option == "" then
                 consumable:click()
             elseif option == "s" and consumable:can_sell_card() then
-                consumable:sell_card()
+                G.FUNCS.sell_card({ config = { ref_table = consumable } })
             elseif option == "u" and consumable:can_use_consumeable() then
-                consumable.area:remove_card(consumable)
-                consumable:use_consumeable(consumable.area)
+                G.FUNCS.use_card({ config = { ref_table = consumable } })
             end
         end
     },
 }
 
 mod.hook:add(function(dt)
-    if G.SETTINGS.paused or G.STATE ~= G.STATES.SELECTING_HAND or chat_votes == {} then
+    if not (G.GAME and G.GAME.blind and G.GAME.blind.config.blind.key == "bl_ttv_me") then
+        return
+    end
+
+    if G.SETTINGS.paused or G.STATE ~= G.STATES.SELECTING_HAND then
+        return
+    end
+
+    if next(chat_votes) == nil then
+        if action_countdown == 0 then
+            action_countdown = 1
+        end
+
         return
     end
 
