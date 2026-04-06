@@ -131,6 +131,10 @@ local function apply_control_state(state)
             end
         end
     end
+
+    if G.buttons then
+        G.buttons.states.collide.can = state
+    end
 end
 
 mod.hook:add(function(dt)
