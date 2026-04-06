@@ -32,18 +32,19 @@ Includes 17 jokers, 2 Boss blinds as well as the commands listed below.
 * !tarot (Give a random Tarot, Planet or Spectral)
 * !text (Write Funny Text On screen) (A command only available to Mods & Vips)
 
-
 # Boss "Twitch Plays Balatro" Commands
 * p (play hand)
 * d (discard hand)
 * so (suit order)
 * sr (sort rank)
+* h# (click playing card)
 * j# (click joker)
+* j#l (move joker left)
+* j#r (move joker right)
 * j#s (sell joker)
 * c# (click consumable)
-* c#u (use consumable)
 * c#s (sell consumable)
-* h# (click playing card)
+* c#u (use consumable)
 
 # Boss "Stream Sniper" Commands
 * !debuff #

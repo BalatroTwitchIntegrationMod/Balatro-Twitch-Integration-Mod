@@ -45,7 +45,7 @@ local ACTIONS = {
         end
     },
     JOKER = {
-        pattern = "^j([1-9][0-9]*)([s]?)$",
+        pattern = "^j([1-9][0-9]*)([lrs]?)$",
         exec = function(index, option)
             local card = tonumber(index)
             if not (card and card <= #G.jokers.cards and option) then
@@ -54,6 +54,16 @@ local ACTIONS = {
             local joker = G.jokers.cards[card]
             if option == "" then
                 joker:click()
+            elseif option == "l" and card > 1 then
+                local swap = G.jokers.cards[card]
+                G.jokers.cards[card] = G.jokers.cards[card - 1]
+                G.jokers.cards[card - 1] = swap
+                play_sound('cardSlide2', nil, 0.3)
+            elseif option == "r" and card < #G.jokers.cards then
+                local swap = G.jokers.cards[card]
+                G.jokers.cards[card] = G.jokers.cards[card + 1]
+                G.jokers.cards[card + 1] = swap
+                play_sound('cardSlide2', nil, 0.3)
             elseif option == "s" and joker:can_sell_card() then
                 G.FUNCS.sell_card({ config = { ref_table = joker } })
             end
