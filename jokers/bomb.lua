@@ -166,18 +166,16 @@ SMODS.Joker { -- C4
             local code = string.gsub(state.code_text, "_", "")
             state.code_text = "_"
             if code == card.ability.extra.code_text then
-                if G.STAGE == G.STAGES.RUN then
-                    SMODS.destroy_cards(card, true)
-                    G.E_MANAGER:add_event(Event({
-                        trigger = "after",
-                        delay = 0.1 * G.SPEEDFACTOR,
-                        blocking = false,
-                        func = function()
-                            card.children.ttv_bomb_keypad.states.visible = false
-                            return true
-                        end
-                    }))
-                end
+                SMODS.destroy_cards(card, true)
+                G.E_MANAGER:add_event(Event({
+                    trigger = "after",
+                    delay = 0.1 * G.SPEEDFACTOR,
+                    blocking = false,
+                    func = function()
+                        card.children.ttv_bomb_keypad.states.visible = false
+                        return true
+                    end
+                }))
                 state.countdown_enabled = false
                 play_sound("ttv_bomb_defuse", 1.0, 0.7)
             else

@@ -145,7 +145,8 @@ local function apply_control_state(state)
     for _, area in ipairs(areas) do
         if area then
             for _, card in ipairs(area.cards) do
-                card.states.collide.can = state
+                card.states.click.can = state
+                card.states.drag.can = state
                 if card.children and card.children.use_button then
                     card.children.use_button.states.collide.can = state
                 end
