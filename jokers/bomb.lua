@@ -145,7 +145,7 @@ SMODS.Joker { -- C4
 
         local keypad = UIBox {
             definition = bomb_keypad_uidef(card, keypad_click_key),
-            config = { align = "cm", parent = card, instance_type = "CARD", offset = { x = 0, y = 0.05 } }
+            config = { align = "cm", parent = card, offset = { x = 0, y = 0.05 } }
         }
         local remove_ref = keypad.remove
         keypad.remove = function(s)
@@ -166,16 +166,18 @@ SMODS.Joker { -- C4
             local code = string.gsub(state.code_text, "_", "")
             state.code_text = "_"
             if code == card.ability.extra.code_text then
-                SMODS.destroy_cards(card, true)
-                G.E_MANAGER:add_event(Event({
-                    trigger = "after",
-                    delay = 0.1 * G.SPEEDFACTOR,
-                    blocking = false,
-                    func = function()
-                        card.children.ttv_bomb_keypad.states.visible = false
-                        return true
-                    end
-                }))
+                if not G.SETTINGS.paused then
+                    SMODS.destroy_cards(card, true)
+                    G.E_MANAGER:add_event(Event({
+                        trigger = "after",
+                        delay = 0.1 * G.SPEEDFACTOR,
+                        blocking = false,
+                        func = function()
+                            card.children.ttv_bomb_keypad.states.visible = false
+                            return true
+                        end
+                    }))
+                end
                 state.countdown_enabled = false
                 play_sound("ttv_bomb_defuse", 1.0, 0.7)
             else

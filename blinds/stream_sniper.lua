@@ -1,3 +1,6 @@
+---@class Mod
+local mod = SMODS.current_mod
+
 SMODS.Blind {
     key = "stream_sniper",
     loc_txt = {
@@ -16,9 +19,31 @@ SMODS.Blind {
     boss = { showdown = true },
     boss_colour = HEX("69359c"),
 
+    disable = function(self)
+        for _, joker in ipairs(G.jokers.cards) do
+            SMODS.debuff_card(joker, false, "ttv")
+        end
+        if G.GAME.blind and G.GAME.blind.ttv_help then
+            G.GAME.blind.ttv_help:remove()
+        end
+    end,
+
     defeat = function(self)
         for _, joker in ipairs(G.jokers.cards) do
             SMODS.debuff_card(joker, false, "ttv")
         end
+        if G.GAME.blind and G.GAME.blind.ttv_help then
+            G.GAME.blind.ttv_help:remove()
+        end
     end
 }
+
+mod.hook:add(function(dt)
+    if not (G.GAME and G.GAME.blind and G.GAME.blind.config.blind.key == "bl_ttv_stream_sniper") then
+        return
+    end
+
+    if G.GAME.blind and not G.GAME.blind.ttv_help and not G.GAME.blind.disabled then
+        G.GAME.blind.ttv_help = TTVPlayAreaHelp({ jokers = "!debuff #" })
+    end
+end)

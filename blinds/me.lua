@@ -168,11 +168,22 @@ mod.hook:add(function(dt)
 
     if config.take_control_away == true then
         apply_control_state(false)
+        if G.GAME.blind and not G.GAME.blind.ttv_help then
+            G.GAME.blind.ttv_help = TTVPlayAreaHelp({
+                jokers = { "j# - select", "j#s - sell", "j#l - move left", "j#r - move right" },
+                consumables = { "c# - select", "c#s - sell", "c#u - use" },
+                hand = "h# - select playing card",
+                buttons = "p - play hand | d - discard | sr - sort rank | so - suit order"
+            })
+        end
     end
 
     if config.take_control_away == false then
         config.take_control_away = nil
         apply_control_state(true)
+        if G.GAME.blind.ttv_help then
+            G.GAME.blind.ttv_help:remove()
+        end
     end
 end)
 
@@ -199,20 +210,28 @@ SMODS.Blind {
 
     set_blind = function(self)
         G.GAME.blind.effect.take_control_away = true
-        action_countdown = 3
+        action_countdown = 1
         chat_user_ids = {}
         chat_votes = {}
     end,
 
     defeat = function(self)
         G.GAME.blind.effect.take_control_away = false
+        chat_user_ids = {}
+        chat_votes = {}
     end,
 
     disable = function(self)
         G.GAME.blind.effect.take_control_away = false
+        chat_user_ids = {}
+        chat_votes = {}
     end,
 
     add_vote = function(self, text, user_id)
+        if self.disabled then
+            return
+        end
+
         if chat_user_ids[user_id] then
             return
         end

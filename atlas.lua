@@ -215,6 +215,7 @@ local function load_boosters_file()
 end
 
 load_boosters_file()
+assert(SMODS.load_file("custom/ttv_play_area_help.lua"))()
 assert(SMODS.load_file("sounds.lua"))()
 assert(SMODS.load_file("colours.lua"))()
 assert(SMODS.load_file("tags.lua"))()
