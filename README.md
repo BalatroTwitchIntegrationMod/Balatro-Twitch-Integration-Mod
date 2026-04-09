@@ -38,11 +38,9 @@ Includes 17 jokers, 2 Boss blinds, 2 Custom Decks, as well as the commands liste
 * so (suit order)
 * sr (sort rank)
 * h# (click playing card)
-* j# (click joker)
 * j#l (move joker left)
 * j#r (move joker right)
 * j#s (sell joker)
-* c# (click consumable)
 * c#s (sell consumable)
 * c#u (use consumable)
 

@@ -44,6 +44,16 @@ mod.hook:add(function(dt)
     end
 
     if G.GAME.blind and not G.GAME.blind.ttv_help and not G.GAME.blind.disabled then
-        G.GAME.blind.ttv_help = TTVPlayAreaHelp({ jokers = "!debuff #" })
+        G.GAME.blind.ttv_help = TTVPlayAreaHelp({
+            header = "Type commands in the chat NOW!",
+            contents = {
+                "Jokers",
+                { "!debuff #", "Debuff card" },
+            },
+            hint = {
+                "Replace # with",
+                "card number!"
+            },
+        })
     end
 end)

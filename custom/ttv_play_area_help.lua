@@ -1,73 +1,103 @@
 ---@class TTVPlayAreaHelp: Moveable
 TTVPlayAreaHelp = Moveable:extend()
 
----@param text string|string[]
----@param scale number?
-local function help_uidef(text, scale)
+---@param text string | string[]
+---@param hint? string[]
+---@param scale? number
+local function help_uidef(text, hint, scale)
     text = type(text) == "table" and text or { text }
 
-    local text_nodes = {}
+    local lines = {}
 
     for _, v in pairs(text) do
-        table.insert(text_nodes, {
-            n = G.UIT.R,
-            config = {},
-            nodes = { { n = G.UIT.T, config = { text = v, colour = G.C.WHITE, scale = scale or 0.4 } } }
-        })
+        if type(v) == "table" and #v == 2 then
+            local line = { n = G.UIT.R, config = { align = "cl", padding = 0.02 }, nodes = {} }
+
+            table.insert(line.nodes, {
+                n = G.UIT.C,
+                config = { align = "cr", minw = 0.5 },
+                nodes = { {
+                    n = G.UIT.R,
+                    config = {},
+                    nodes = { { n = G.UIT.T, config = { text = v[1], colour = G.C.WHITE, scale = scale or 0.3 } } }
+                } }
+            })
+            table.insert(line.nodes, {
+                n = G.UIT.C,
+                config = {},
+                nodes = { { n = G.UIT.T, config = { text = " - ", colour = G.C.UI.TEXT_INACTIVE, scale = scale or 0.3 } } }
+            })
+            table.insert(line.nodes, {
+                n = G.UIT.C,
+                config = {},
+                nodes = { {
+                    n = G.UIT.R,
+                    config = {},
+                    nodes = { { n = G.UIT.T, config = { text = v[2], colour = G.C.WHITE, scale = scale or 0.3 } } }
+                } }
+            })
+
+            table.insert(lines, line)
+        elseif type(v) == "string" then
+            local line = { n = G.UIT.R, config = { align = "cm" }, nodes = {} }
+
+            table.insert(line.nodes, {
+                n = G.UIT.C,
+                config = { padding = 0.1, align = "cm" },
+                nodes = { { n = G.UIT.T, config = { text = v, colour = G.C.JOKER_GREY, scale = scale or 0.3 } } }
+            })
+
+            table.insert(lines, line)
+        end
+    end
+
+
+    if hint then
+        local line = { n = G.UIT.R, config = { align = "cm", padding = 0.1 }, nodes = { { n = G.UIT.C, config = {}, nodes = {} } } }
+
+        for _, v in pairs(hint) do
+            table.insert(line.nodes[1].nodes, {
+                n = G.UIT.R,
+                config = { align = "cm" },
+                nodes = { { n = G.UIT.T, config = { text = v, colour = G.C.GOLD, scale = 0.3 } } }
+            })
+        end
+
+        table.insert(lines, line)
     end
 
     ---@type UINode
     local uidef = {
         n = G.UIT.ROOT,
-        config = { align = "cm", colour = G.C.BLACK, padding = 0.1, r = 0.05 },
+        config = { align = "cm", colour = G.C.UI.HOVER, hover = true, padding = 0.12, r = 0.05 },
         nodes = { {
             n = G.UIT.C,
             config = {},
-            nodes = text_nodes
+            nodes = lines
         } }
     }
 
     return uidef
 end
 
----@param args { jokers?: string, consumables?: string, hand?: string, buttons?: string }
+---@param args { header?: string, contents?: string|string[], hint?: string[] }
 function TTVPlayAreaHelp:init(args)
     Moveable.init(self)
 
     self.children = {}
 
-    self.children.cta = UIBox {
-        definition = help_uidef("Type commands in the chat NOW!", 0.6),
-        config = { parent = self, align = "tm", major = G.jokers, can_collide = false, offset = { x = 0, y = -0.2 } }
-    }
-
-    if args.jokers then
-        self.children.jokers = UIBox {
-            definition = help_uidef(args.jokers),
-            config = { parent = self, align = "bm", major = G.jokers, can_collide = false, offset = { x = 0, y = 0.2 } }
+    if args.header then
+        self.children.header = UIBox {
+            definition = help_uidef(args.header, nil, 0.55),
+            config = { parent = self, align = "tmi", major = G.ROOM_ATTACH, can_collide = false, offset = { x = 0.0, y = 2.9 } }
         }
     end
 
-    if args.consumables then
-        self.children.consumables = UIBox {
-            definition = help_uidef(args.consumables),
-            config = { parent = self, align = "bm", major = G.consumeables, can_collide = false, offset = { x = 0, y = 0.2 } }
+    if args.contents then
+        self.children.contents = UIBox {
+            definition = help_uidef(args.contents, args.hint),
+            config = { parent = self, align = "cri", major = G.ROOM_ATTACH, can_collide = false, offset = { x = 0.5, y = 0.0 } }
         }
-    end
-
-    if args.hand then
-        self.children.hand = UIBox {
-            definition = help_uidef(args.hand),
-            config = { parent = self, align = "tm", major = G.hand, can_collide = false, offset = { x = 0, y = -0.6 } }
-        }
-    end
-
-    if args.buttons then
-        self.children.buttons = UIBox {
-            definition = help_uidef(args.buttons),
-            config = { parent = self, align = "bm", major = G.buttons, can_collide = false, offset = { x = 0, y = 0.2 } }
-        }
-        self.children.buttons.states.visible = G.buttons ~= nil
     end
 
     self.attention_text = true
@@ -79,16 +109,6 @@ end
 
 function TTVPlayAreaHelp:update(dt)
     self.states.visible = G.STATE == G.STATES.SELECTING_HAND
-
-    if self.children.buttons and G.buttons then
-        self.children.buttons.states.visible = G.buttons.states.visible
-
-        if self.children.buttons:get_major() ~= G.buttons then
-            self.children.buttons:set_alignment({ major = G.buttons })
-            self.children.buttons:align_to_major()
-            self.children.buttons:hard_set_VT()
-        end
-    end
 end
 
 function TTVPlayAreaHelp:remove()

@@ -45,16 +45,14 @@ local ACTIONS = {
         end
     },
     JOKER = {
-        pattern = "^j([1-9][0-9]*)([lrs]?)$",
+        pattern = "^j([1-9][0-9]*)([lrs])$",
         exec = function(index, option)
             local card = tonumber(index)
             if not (card and card <= #G.jokers.cards and option) then
                 return
             end
             local joker = G.jokers.cards[card]
-            if option == "" then
-                joker:click()
-            elseif option == "l" and card > 1 then
+            if option == "l" and card > 1 then
                 local swap = G.jokers.cards[card]
                 G.jokers.cards[card] = G.jokers.cards[card - 1]
                 G.jokers.cards[card - 1] = swap
@@ -70,16 +68,14 @@ local ACTIONS = {
         end
     },
     CONSUMABLE = {
-        pattern = "^c([1-9][0-9]*)([su]?)$",
+        pattern = "^c([1-9][0-9]*)([su])$",
         exec = function(index, option)
             local card = tonumber(index)
             if not (card and card <= #G.consumeables.cards and option) then
                 return
             end
             local consumable = G.consumeables.cards[card]
-            if option == "" then
-                consumable:click()
-            elseif option == "s" and consumable:can_sell_card() then
+            if option == "s" and consumable:can_sell_card() then
                 G.FUNCS.sell_card({ config = { ref_table = consumable } })
             elseif option == "u" and consumable:can_use_consumeable() then
                 G.FUNCS.use_card({ config = { ref_table = consumable } })
@@ -170,10 +166,27 @@ mod.hook:add(function(dt)
         apply_control_state(false)
         if G.GAME.blind and not G.GAME.blind.ttv_help then
             G.GAME.blind.ttv_help = TTVPlayAreaHelp({
-                jokers = { "j# - select", "j#s - sell", "j#l - move left", "j#r - move right" },
-                consumables = { "c# - select", "c#s - sell", "c#u - use" },
-                hand = "h# - select playing card",
-                buttons = "p - play hand | d - discard | sr - sort rank | so - suit order"
+                header = "Type commands in the chat NOW!",
+                contents = {
+                    "Game",
+                    { "p", "Play hand" },
+                    { "d", "Discard" },
+                    "Hand",
+                    { "h#", "Select card" },
+                    { "sr", "Sort rank" },
+                    { "so", "Suit order" },
+                    "Jokers",
+                    { "j#s", "Sell" },
+                    { "j#l", "Move left" },
+                    { "j#r", "Move right" },
+                    "Consumables",
+                    { "c#s", "Sell" },
+                    { "c#u", "Use" },
+                },
+                hint = {
+                    "Replace # with",
+                    "card number!"
+                },
             })
         end
     end
@@ -210,6 +223,8 @@ SMODS.Blind {
 
     set_blind = function(self)
         G.GAME.blind.effect.take_control_away = true
+        G.jokers:unhighlight_all()
+        G.consumeables:unhighlight_all()
         action_countdown = 1
         chat_user_ids = {}
         chat_votes = {}
@@ -235,6 +250,8 @@ SMODS.Blind {
         if chat_user_ids[user_id] then
             return
         end
+
+        text = string.lower(text)
 
         for key, action in pairs(ACTIONS) do
             local params = { string.match(text, action.pattern) }
