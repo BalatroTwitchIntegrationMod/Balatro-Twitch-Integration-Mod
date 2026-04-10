@@ -136,7 +136,7 @@ end)
 
 ---@param state boolean
 local function apply_control_state(state)
-    local areas = { G.jokers, G.consumeables, G.hand }
+    local areas = { G.jokers, G.consumeables, G.hand, G.deck }
 
     for _, area in ipairs(areas) do
         if area then
