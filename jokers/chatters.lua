@@ -10,14 +10,12 @@ SMODS.Joker {
         }
     },
     loc_txt = {
-        ["name"] = "Chatters",
-        ["text"] = {
+        name = "Chatters",
+        text = {
             "Gain {C:blue}+#1#{} Chip per viewer.",
             "{C:inactive}(Currently{} {C:blue}+#2#{} {C:inactive}chips){}"
         },
-        ["unlock"] = {
-            "Unlocked by default."
-        }
+        unlock = { "Unlocked by default." }
     },
     pos = {
         x = 5,
@@ -34,7 +32,8 @@ SMODS.Joker {
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = "CustomJokers",
+    atlas = "JokerSet1",
+
     loc_vars = function(self, info_queue, card)
         local chips = card.added_to_deck and card.ability.extra.chips or mod.twitch.viewer_count
         return {
@@ -44,9 +43,11 @@ SMODS.Joker {
             }
         }
     end,
+
     add_to_deck = function(self, card, from_debuff)
         card.ability.extra.chips = mod.twitch.viewer_count
     end,
+
     calculate = function(self, card, context)
         if context.cardarea == G.jokers and context.joker_main then
             return {
@@ -54,6 +55,7 @@ SMODS.Joker {
             }
         end
     end,
+
     set_chips = function(self, card, chips)
         card.ability.extra.chips = chips
     end

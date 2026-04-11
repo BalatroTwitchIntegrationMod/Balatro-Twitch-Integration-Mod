@@ -29,7 +29,7 @@ SMODS.Joker { --NAME PENDING
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = 'CustomJokers',
+    atlas = 'JokerSet1',
 
     loc_vars = function(self, info_queue, card)
         local new_numerator, new_denominator = SMODS.get_probability_vars(card, 1, card.ability.extra.odds,

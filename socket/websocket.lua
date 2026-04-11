@@ -315,7 +315,10 @@ function SecureWebSocket:send(opcode, payload)
     if length == 126 then
         data = data .. utils.numbers_to_bytes(#payload, 2)
     elseif length == 127 then
-        data = data .. utils.numbers_to_bytes(#payload, 8)
+        if #payload > 0xFFFFFFFFULL then
+            return "error" -- Data over (4 GiB - 1 byte) is not supported
+        end
+        data = data .. utils.numbers_to_bytes({ 0, #payload }, 4)
     end
 
     local key = generate_random_key(4)
@@ -420,7 +423,13 @@ function SecureWebSocket:parse()
             return "continue"
         end
 
-        length = utils.bytes_to_numbers(string.sub(header, to_skip + 1, to_skip + 8), 8)[1]
+        local split_length = utils.bytes_to_numbers(string.sub(header, to_skip + 1, to_skip + 8), 4)
+
+        if split_length[1] > 0 then
+            return "error" -- Data over (4 GiB - 1 byte) is not supported
+        end
+
+        length = split_length[2]
 
         to_skip = to_skip + 8
     end

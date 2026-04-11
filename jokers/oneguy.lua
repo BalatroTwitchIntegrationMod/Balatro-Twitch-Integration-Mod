@@ -35,7 +35,7 @@ SMODS.Joker{
     perishable_compat = true,
     unlocked = true,
     discovered = true,
-    atlas = 'CustomJokers',
+    atlas = 'JokerSet1',
     
 calculate = function(self, card, context)
         if context.individual and context.cardarea == G.play  then

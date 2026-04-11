@@ -1,87 +1,88 @@
-local hasBeenEternal = false
-
 ---@param card Card
----@param callback fun(pass: number)
----@return table
-local function createDefuseUI(card, callback)
-    local state = {text = "_"}
-    local function add(n)
-        return function()
-            if not state.text:match "_$" then return end
-            state.text = state.text:sub(1, -2) .. n
-            if #state.text < 4 then state.text = state.text .. "_" end
+---@param keypad_click_key string
+---@return UINode
+local function bomb_keypad_uidef(card, keypad_click_key)
+    local ref_table = card.ability.extra.state
+
+    local keypad_nodes = {}
+    local keypad_glyphs = {
+        { "1", "2", "3" },
+        { "4", "5", "6" },
+        { "7", "8", "9" },
+        { "X", "0", "»" }
+    }
+
+    for r = 1, 4 do
+        local row_nodes = {}
+
+        for c = 1, 3 do
+            local color = G.C.GREY
+            local glyph = keypad_glyphs[r][c]
+
+            if glyph == "X" then color = G.C.RED end
+            if glyph == "»" then color = G.C.GREEN end
+
+            table.insert(row_nodes, {
+                n = G.UIT.C,
+                nodes = { UIBox_button({ label = { glyph }, colour = color, button = keypad_click_key, minw = 0.3, minh = 0.2, scale = 0.3, id = glyph }) },
+                config = { colour = G.C.CLEAR, padding = 0, w = 0.3, h = 0.2 }
+            })
         end
+
+        table.insert(keypad_nodes, {
+            n = G.UIT.R,
+            nodes = row_nodes,
+            config = { colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2, align = "cm" }
+        })
     end
-    local instance_key = tostring(state) .. "_"
-    for i = 0, 9 do G.FUNCS[instance_key .. i] = add(i) end
-    G.FUNCS[instance_key .. "x"] = function() state.text = "_" end
-    G.FUNCS[instance_key .. "y"] = function() if #state.text == 4 and state.text:match "^%d%d%d%d$" then callback(tonumber(state.text) or 0) else callback(-1) end state.text = "_" end
-    return {n = G.UIT.ROOT, config = {r = 0.1, align = "tm", padding = 0.05, colour = G.C.UI.TRANSPARENT_DARK, w = 1.0, h = 1.0, hover = true}, nodes = {
-        {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 1.0, h = 1.0}, nodes = {
-            {n = G.UIT.R, config = {colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2}, nodes = {
-                {n = G.UIT.C, config = {colour = G.C.UI.TRANSPARENT_DARK, padding = 0.05, minw = 0.6, minh = 0.2}, nodes = {
-                    {n = G.UIT.T, config = {colour = G.C.WHITE, padding = 0.15, ref_table = state, ref_value = "text", scale = 0.3}}
-                }}, {n = G.UIT.C, config = {colour = G.C.UI.TRANSPARENT_DARK, padding = 0.0, minw = 0.4, minh = 0.2, align = "cm"}, nodes = {
-                    {n = G.UIT.T, config = {colour = G.C.RED, padding = 0.15, ref_table = card.ability.extra, ref_value = "Remaining_text", scale = 0.3}}
-                }}
-            }},
-            {n = G.UIT.R, config = {colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2, align = "cm"}, nodes = {
-                {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"1"}, colour = G.C.GREY, button = instance_key .. "1", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"2"}, colour = G.C.GREY, button = instance_key .. "2", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"3"}, colour = G.C.GREY, button = instance_key .. "3", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}
-            }},
-            {n = G.UIT.R, config = {colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2, align = "cm"}, nodes = {
-                {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"4"}, colour = G.C.GREY, button = instance_key .. "4", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"5"}, colour = G.C.GREY, button = instance_key .. "5", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"6"}, colour = G.C.GREY, button = instance_key .. "6", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}
-            }},
-            {n = G.UIT.R, config = {colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2, align = "cm"}, nodes = {
-                {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"7"}, colour = G.C.GREY, button = instance_key .. "7", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"8"}, colour = G.C.GREY, button = instance_key .. "8", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"9"}, colour = G.C.GREY, button = instance_key .. "9", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}
-            }},
-            {n = G.UIT.R, config = {colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2, align = "cm"}, nodes = {
-                {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"X"}, colour = G.C.RED, button = instance_key .. "x", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"0"}, colour = G.C.GREY, button = instance_key .. "0", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}, {n = G.UIT.C, config = {colour = G.C.CLEAR, padding = 0.0, w = 0.3, h = 0.2}, nodes = {
-                    UIBox_button {label = {"»"}, colour = G.C.GREEN, button = instance_key .. "y", minw = 0.3, minh = 0.2, scale = 0.3},
-                }}
-            }}
-        }}
-    }}
+
+    ---@type UINode
+    local uidef = {
+        n = G.UIT.ROOT,
+        config = { r = 0.1, align = "tm", padding = 0.05, colour = G.C.UI.TRANSPARENT_DARK, w = 1.0, h = 1.0 },
+        nodes = { {
+            n = G.UIT.C,
+            config = { colour = G.C.CLEAR, padding = 0.0, w = 1.0, h = 1.0 },
+            nodes = {
+                {
+                    n = G.UIT.R,
+                    config = { colour = G.C.CLEAR, padding = 0.05, w = 1.0, h = 0.2 },
+                    nodes = { {
+                        n = G.UIT.C,
+                        config = { colour = G.C.UI.TRANSPARENT_DARK, padding = 0.05, minw = 0.6, minh = 0.2 },
+                        nodes = { { n = G.UIT.T, config = { colour = G.C.WHITE, padding = 0.15, ref_table = ref_table, ref_value = "code_text", scale = 0.3 } } }
+                    }, {
+                        n = G.UIT.C,
+                        config = { colour = G.C.UI.TRANSPARENT_DARK, padding = 0.0, minw = 0.4, minh = 0.2, align = "cm" },
+                        nodes = { { n = G.UIT.T, config = { colour = G.C.RED, padding = 0.15, ref_table = ref_table, ref_value = "countdown_text", scale = 0.3 } } }
+                    } }
+                },
+                unpack(keypad_nodes)
+            }
+        } }
+    }
+
+    return uidef
 end
 
-SMODS.Joker { --C4
+SMODS.Joker { -- C4
     key = "bomb",
     config = {
         extra = {
-            Remaining = 60,
-            number = 0
+            code_text = "4176",
+            user_name = "haha",
+            eternal = false,
+            countdown = 60,
         }
     },
     loc_txt = {
-        ['name'] = 'C4',
-        ['text'] = {
-            '{C:dark_edition,E:1,s:2}DEFUSE THE BOMB OR LOSE!{}',
-            '{C:inactive}{C:red,E:2}Self-destructs{} when timer runs out{}'
+        name = "C4",
+        text = {
+            "{C:dark_edition,E:1,s:2}DEFUSE THE BOMB OR LOSE!{}",
+            "{C:inactive}{C:red,E:2}Self-destructs{} when timer runs out{}",
+            "4 digit code has been set by {C:purple}#1#{} in chat"
         },
-        ['unlock'] = {
-            'Unlocked by default.'
-        }
+        unlock = { "Unlocked by default." }
     },
     pos = {
         x = 7,
@@ -98,89 +99,143 @@ SMODS.Joker { --C4
     perishable_compat = false,
     unlocked = true,
     discovered = true,
-    atlas = 'CustomJokers',
-    in_pool = function() return false end,
+    atlas = "JokerSet1",
+
+    loc_vars = function(self, info_queue, card)
+        return { vars = { card.ability.extra.user_name } }
+    end,
+
+    in_pool = function()
+        return false
+    end,
+
+    add_to_deck = function(self, card, from_debuff)
+        -- Let it be sold the first time it appears, for the funnies
+        self.config.extra.eternal = true
+    end,
 
     set_ability = function(self, card, initial)
-        if initial then
-            -- let it be sold the first time it appears, for the funnies
-            if hasBeenEternal then
-                card:set_eternal(true)
+        if not initial then
+            return
+        end
+
+        if self.config.extra.eternal and not G.SETTINGS.paused then
+            card:set_eternal(true)
+        end
+
+        card.ability.extra.state = {
+            code_text = "_",
+            countdown = card.ability.extra.countdown,
+            countdown_text = tostring(card.ability.extra.countdown),
+            countdown_enabled = true,
+            ticks_last = card.ability.extra.countdown * 2,
+        }
+    end,
+
+    create_keypad = function(self, card)
+        if card.children.ttv_bomb_keypad or not card.ability.extra.state.countdown_enabled then
+            return
+        end
+
+        local keypad_click_key = tostring(card)
+
+        G.FUNCS[keypad_click_key] = function(e)
+            self:keypad_click(card, e)
+        end
+
+        local keypad = UIBox {
+            definition = bomb_keypad_uidef(card, keypad_click_key),
+            config = { align = "cm", parent = card, offset = { x = 0, y = 0.05 } }
+        }
+        local remove_ref = keypad.remove
+        keypad.remove = function(s)
+            remove_ref(s)
+            G.FUNCS[keypad_click_key] = nil
+        end
+
+        card.children.ttv_bomb_keypad = keypad
+    end,
+
+    keypad_click = function(self, card, e)
+        local state = card.ability.extra.state
+        local action = e.config.id
+
+        if action == "X" then
+            state.code_text = "_"
+        elseif action == "»" then
+            local code = string.gsub(state.code_text, "_", "")
+            state.code_text = "_"
+            if code == card.ability.extra.code_text then
+                if not G.SETTINGS.paused then
+                    SMODS.destroy_cards(card, true)
+                    G.E_MANAGER:add_event(Event({
+                        trigger = "after",
+                        delay = 0.1 * G.SPEEDFACTOR,
+                        blocking = false,
+                        func = function()
+                            card.children.ttv_bomb_keypad.states.visible = false
+                            return true
+                        end
+                    }))
+                end
+                state.countdown_enabled = false
+                play_sound("ttv_bomb_defuse", 1.0, 0.7)
             else
-                hasBeenEternal = true
+                play_sound("ttv_loud_incorrect_buzzer", 1.0, 1.5)
+            end
+        elseif string.find(state.code_text, "_") then
+            state.code_text = string.gsub(state.code_text, "_", "")
+            state.code_text = state.code_text .. action
+            if #state.code_text < 4 then
+                state.code_text = state.code_text .. "_"
             end
         end
     end,
 
-    loc_vars = function(self, info_queue, card)
-        return {vars = {card.ability.extra.Remaining}}
-    end,
-
-    add_to_deck = function(self, card, from_debuff)
-        card.ttv_bomb_keypad = UIBox {
-            definition = createDefuseUI(card, function(pass)
-                if pass == card.ability.extra.number then
-                    SMODS.destroy_cards(card, true)
-                    play_sound("ttv_bomb_defuse", 1.0, 0.7)
-                else
-                    play_sound("ttv_loud_incorrect_buzzer", 1.0, 1.5)
-                end
-            end),
-            config = {align = "cm", parent = card, collideable = true, instance_type = "POPUP"}
-        }
-    end,
-
     update = function(self, card, dt)
-        if not card.ability.extra.Remaining then return end
-        if card.ability.extra.Remaining <= 0 then
-            card.ability.extra.Remaining = nil
+        self:create_keypad(card)
+
+        local keypad = card.children.ttv_bomb_keypad
+        local disable_collide = keypad and keypad.states.collide.is
+        card.states.collide.can = not disable_collide
+        card.zoom = false
+
+        local state = card.ability.extra.state
+
+        if not state.countdown_enabled then
+            return
+        end
+
+        if state.countdown > 0 then
+            state.countdown_text = tostring(math.ceil(math.max(state.countdown, 0)))
+            local ticks = math.ceil(state.countdown * 2)
+            if ticks ~= state.ticks_last and (state.countdown < 9 or math.fmod(ticks, 2) == 0) then
+                card:juice_up(0.1, 0)
+                play_sound("tarot1", 1.5, 0.5)
+            end
+            state.ticks_last = ticks
+        else
+            state.code_text = "BOOM!"
+            state.countdown_text = ""
+            state.countdown_enabled = false
+
             play_sound("ttv_bomb_explosion", 1.0, 0.7)
-            SMODS.destroy_cards(card, true, true)
+
+            SMODS.destroy_cards(card, true)
+
             G.E_MANAGER:add_event(Event({
-                trigger = 'after',
+                trigger = "after",
+                delay = 0.25 * G.SPEEDFACTOR,
                 func = function()
                     if G.STAGE == G.STAGES.RUN then
                         G.STATE = G.STATES.GAME_OVER
                         G.STATE_COMPLETE = false
                     end
+                    return true
                 end
             }))
-        else
-            if card.ability.extra.Remaining < 10 and card.ability.extra.Remaining % 1 >= 0.5 and math.max(0, (card.ability.extra.Remaining) - dt / G.SPEEDFACTOR) % 1 < 0.5 then
-                card:juice_up(0.1, 0.1)
-                play_sound("tarot1", 1.5, 0.5)
-            end
-            card.ability.extra.Remaining = math.max(0, (card.ability.extra.Remaining) - dt / G.SPEEDFACTOR)
-            if math.floor(card.ability.extra.Remaining) ~= card.ability.extra.Remaining_text then
-                card:juice_up(0.1, 0.1)
-                play_sound("tarot1", 1.5, 0.5)
-            end
-            card.ability.extra.Remaining_text = math.floor(card.ability.extra.Remaining)
         end
+
+        state.countdown = state.countdown - (dt / G.SPEEDFACTOR)
     end,
-
-    remove_from_deck = function(self, card, from_debuff)
-        card.ttv_bomb_keypad:remove()
-        card.ttv_bomb_keypad = nil
-    end
-}
-
-SMODS.DrawStep {
-    key = 'defuse_button',
-    order = -30, -- before the Card is drawn
-    func = function(card, layer)
-        --        if card.children.ttv_bomb_button then
-        --            card.children.ttv_bomb_button:draw()
-        --        end
-    end
-}
-
-SMODS.DrawStep {
-    key = 'defuse_button',
-    order = 80, -- after the Card is drawn
-    func = function(card, layer)
-        if card.ttv_bomb_keypad then
-            card.ttv_bomb_keypad:draw()
-        end
-    end
 }

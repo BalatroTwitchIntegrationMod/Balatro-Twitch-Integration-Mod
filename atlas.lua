@@ -24,8 +24,8 @@ SMODS.Atlas({
 })
 
 SMODS.Atlas({
-    key = "CustomJokers",
-    path = "CustomJokers.png",
+    key = "JokerSet1",
+    path = "JokerSet1.png",
     px = 71,
     py = 95,
     atlas_table = "ASSET_ATLAS"
@@ -118,6 +118,25 @@ SMODS.Atlas({
     atlas_table = "ANIMATION_ATLAS"
 })
 
+SMODS.Atlas({
+    key = "me",
+    path = "/boss_blinds/me.png",
+    frames = 3,
+    fps = 1,
+    px = 34,
+    py = 34,
+    atlas_table = "ANIMATION_ATLAS"
+})
+
+SMODS.Atlas({
+    key = "stream_sniper",
+    path = "/boss_blinds/stream_sniper.png",
+    px = 34,
+    py = 34,
+    atlas_table = "ASSET_ATLAS"
+})
+
+
 local NFS = require("nativefs")
 to_big = to_big or function(a) return a end
 lenient_bignum = lenient_bignum or function(a) return a end
@@ -196,8 +215,8 @@ local function load_boosters_file()
 end
 
 load_boosters_file()
+assert(SMODS.load_file("custom/ttv_play_area_help.lua"))()
 assert(SMODS.load_file("sounds.lua"))()
-assert(SMODS.load_file("custom/defuse_buttons.lua"))()
 assert(SMODS.load_file("colours.lua"))()
 assert(SMODS.load_file("tags.lua"))()
 assert(SMODS.load_file("blinds.lua"))()

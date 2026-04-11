@@ -14,6 +14,9 @@ SMODS.Back {
     no_collection = false,
     atlas = 'CustomDecks',
     apply = function(self, back)
+        G.GAME.perscribed_bosses = G.GAME.perscribed_bosses or {}
+        G.GAME.perscribed_bosses[1] = "bl_ttv_me"
+        G.GAME.perscribed_bosses[8] = "bl_ttv_stream_sniper"
         G.E_MANAGER:add_event(Event({
             func = function()
                 play_sound('timpani')

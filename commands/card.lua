@@ -35,7 +35,6 @@ mod.commands.tarot = {
     end
 }
 
-
 mod.commands.planet = {
     can_exec = function(params)
         return G.consumeables and true or false

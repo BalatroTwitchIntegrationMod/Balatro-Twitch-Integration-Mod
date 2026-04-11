@@ -126,7 +126,7 @@ SMODS.Joker{
 --    perishable_compat = true,
 --    unlocked = true,
 --    discovered = true,
---    atlas = 'CustomJokers',
+--    atlas = 'JokerSet1',
 --
 --    loc_vars = function(self, info_queue, card)
 --        local r_mults = {}

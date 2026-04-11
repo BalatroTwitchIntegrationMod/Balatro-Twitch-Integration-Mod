@@ -55,6 +55,18 @@ local escape_map = {
 
 local Utils = {}
 
+---@param t table<string, any>
+---@return table<string, any>
+function Utils.keys_to_lower(t)
+    local r = {}
+
+    for k, v in pairs(t) do
+        r[string.lower(k)] = v
+    end
+
+    return r
+end
+
 ---@param text string
 ---@param separator string
 ---@return fun(): string?, string?
@@ -108,10 +120,6 @@ function Utils.bytes_to_numbers(bytes, size, endian)
 
         local v = 0
 
-        if size > 4 then
-            v = 0ULL
-        end
-
         for _, n in ipairs({ string.byte(slice, 1, size) }) do
             v = bit.bor(bit.lshift(v, 8), n)
         end
@@ -135,7 +143,7 @@ function Utils.numbers_to_bytes(numbers, size, endian)
         local p = ""
 
         for _ = 1, size do
-            local c = string.char(tonumber(bit.band(v, 0xFF)) or 0)
+            local c = string.char(bit.band(v, 0xFF))
 
             if endian == "little" then
                 p = p .. c
@@ -204,7 +212,7 @@ end
 function Utils.sha1(data)
     local padding = math.fmod(#data + 1, 64)
     local filler = string.rep("\x00", (padding <= 56) and (56 - padding) or (64 - padding + 56))
-    local length = Utils.numbers_to_bytes(#data * 8ULL, 8)
+    local length = Utils.numbers_to_bytes({ 0, #data * 8 }, 4)
 
     data = data .. "\x80" .. filler .. length
 
