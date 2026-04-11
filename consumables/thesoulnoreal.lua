@@ -14,7 +14,7 @@ SMODS.Consumable {
     discovered = true,
     hidden = false,
     can_repeat_soul = false,
-    atlas = 'CustomConsumables',
+    atlas = 'ConsumablesSet1',
     use = function(self, card, area, copier)
         local used_card = copier or card
         G.E_MANAGER:add_event(Event({

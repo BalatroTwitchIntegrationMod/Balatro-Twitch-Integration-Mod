@@ -32,6 +32,14 @@ SMODS.Atlas({
 })
 
 SMODS.Atlas({
+    key = "ConsumablesSet1",
+    path = "ConsumablesSet1.png",
+    px = 71,
+    py = 95,
+    atlas_table = "ASSET_ATLAS"
+})
+
+SMODS.Atlas({
     key = "CustomConsumables",
     path = "CustomConsumables.png",
     px = 71,
@@ -156,7 +164,7 @@ local function load_jokers_folder()
 end
 
 
-local consumableIndexList = {1, 2, 3, 4}
+local consumableIndexList = {1, 2, 3, 4, 5}
 
 local function load_consumables_folder()
     local mod_path = SMODS.current_mod.path
