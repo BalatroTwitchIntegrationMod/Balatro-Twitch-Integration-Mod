@@ -8,7 +8,7 @@ SMODS.Joker { --NAME PENDING
     loc_txt = {
         ['name'] = 'Chimpanzee',
         ['text'] = {
-            '{C:green}1 in 4{} chance to add a {C:attention}Gros Michel{}'
+            '{C:green}#1# in #2#{} chance to add a {C:attention}Gros Michel{}'
         },
         ['unlock'] = {
             'Unlocked by default.'
@@ -32,8 +32,7 @@ SMODS.Joker { --NAME PENDING
     atlas = 'JokerSet1',
 
     loc_vars = function(self, info_queue, card)
-        local new_numerator, new_denominator = SMODS.get_probability_vars(card, 1, card.ability.extra.odds,
-            'j_ttv_monkey2')
+        local new_numerator, new_denominator = SMODS.get_probability_vars(card, 1, card.ability.extra.odds, 'j_ttv_monkey2')
         return {vars = {new_numerator, new_denominator}}
     end,
 
