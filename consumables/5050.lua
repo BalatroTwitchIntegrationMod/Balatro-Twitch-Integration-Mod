@@ -1,18 +1,18 @@
 SMODS.Consumable {
-    key = 'dangerous',
+    key = '5050',
     set = 'Tarot',
     pos = { x = 0, y = 0 },
-    config = { extra = { odds = 10 } },
+    config = { extra = { odds = 2 } },
     loc_txt = {
-        name = 'Dangerously',
+        name = '50/50',
         text = {
             '{C:green}#1# in #2#{} chance to get all {C:legendary}Legendary{} {C:attention}Jokers{}',
             'or',
-            'Crash the game'
+            'Lose the run'
         }
     },
     loc_vars = function(self, info_queue, card)
-        local numerator, denominator = SMODS.get_probability_vars(card, 5, card.ability.extra.odds, 'c_ttv_5050')
+        local numerator, denominator = SMODS.get_probability_vars(card, 1, card.ability.extra.odds, 'c_ttv_5050')
         return { vars = { numerator, denominator } }
     end,
     cost = 3,
@@ -22,7 +22,7 @@ SMODS.Consumable {
     can_repeat_soul = false,
     atlas = 'CustomConsumables',
     use = function(self, card, area, copier)
-        if SMODS.pseudorandom_probability(card, 'group_0_f5a4b0f7', 5, card.ability.extra.odds, 'c_ttv_5050') then
+        if SMODS.pseudorandom_probability(card, 'group_0_f5a4b0f7', 1, card.ability.extra.odds, 'c_ttv_5050') then
         G.E_MANAGER:add_event(Event({
             trigger = 'after',
             delay = 0.4,
@@ -38,11 +38,17 @@ SMODS.Consumable {
         end
         }))
         else
-            G.E_MANAGER:add_event(Event({
-                        error("Skill Issue Crash")
+           G.E_MANAGER:add_event(Event({
+                    trigger = 'after',
+                    delay = 0.5,
+                    func = function()
+                        if G.STAGE == G.STAGES.RUN then 
+                            G.STATE = G.STATES.GAME_OVER
+                            G.STATE_COMPLETE = false
+                        end
+                    end
                     }))
                 end
-            delay(0.6)
         end,
     can_use = function(self, card)
     return true
