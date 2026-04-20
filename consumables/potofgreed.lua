@@ -13,7 +13,7 @@ SMODS.Consumable {
     discovered = true,
     hidden = false,
     can_repeat_soul = false,
-    atlas = 'CustomConsumables',
+    atlas = 'ConsumablesSet1',
     select_card = 'consumeables',
     use = function(self, card, area, copier)
         SMODS.draw_cards(2)

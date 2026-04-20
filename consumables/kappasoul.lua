@@ -14,7 +14,7 @@ SMODS.Consumable {
     discovered = true,
     hidden = true,
     can_repeat_soul = false,
-    atlas = 'CustomConsumables',
+    atlas = 'ConsumablesSet1',
     soul_set = 'ttv_ttv_twitch_jokers',
     soul_rate = 0.13, -- find the sweat spot for spawn rate
     soul_pos = {
