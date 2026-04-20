@@ -1,0 +1,32 @@
+[manifest]
+version = "1.0.0"
+priority = 0
+dump_lua = true
+
+[[patches]]
+[patches.pattern]
+target = "functions/button_callbacks.lua"
+pattern = '''
+if args.key == '0' then args.key = 'o' end
+'''
+position = "at"
+payload = '''
+if not G.CONTROLLER.text_input_hook.config.ref_table.digits_only then
+    if args.key == '0' then args.key = 'o' end
+end
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "functions/button_callbacks.lua"
+pattern = '''
+local text = hook_config.text
+'''
+position = "after"
+payload = '''
+if G.CONTROLLER.text_input_hook.config.ref_table.digits_only then
+    corpus = "0123456789"
+end
+'''
+match_indent = true

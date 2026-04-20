@@ -123,7 +123,8 @@ function mod.config_tab()
                     w = 1,
                     text = tostring(mod.config.cooldown_sec),
                     ref_table = mod.config,
-                    ref_value = "cooldown_sec"
+                    ref_value = "cooldown_sec",
+                    digits_only = true
                 })
             }
         }, {
